@@ -1,0 +1,21 @@
+# Caddy site block for ragtrust.
+#
+# This is a SNIPPET to be APPENDED to the existing /etc/caddy/Caddyfile on the
+# VPS -- it does NOT replace that file, and does not touch any other site
+# block already in it. Caddy config files are just a sequence of site blocks,
+# so appending is safe.
+#
+# Append:
+#   cat deploy/Caddyfile.snippet | sudo tee -a /etc/caddy/Caddyfile
+#   sudo caddy validate --config /etc/caddy/Caddyfile
+#   sudo systemctl reload caddy
+#
+# Caddy auto-provisions and renews a TLS certificate for this hostname via
+# its built-in ACME client -- sslip.io resolves ragtrust.169.58.185.43.sslip.io
+# to 169.58.185.43 with no separate DNS setup needed, which is why this
+# hostname form works out of the box on a bare VPS.
+
+ragtrust.169.58.185.43.sslip.io {
+	encode gzip
+	reverse_proxy 127.0.0.1:8402
+}

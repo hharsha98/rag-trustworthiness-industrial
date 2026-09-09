@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAG Trustworthiness — Instrument</title>
+<meta name="description" content="Ask a question against a private corpus and watch every trust metric resolve: grounding, citation accuracy, relevance, redundancy, and a non-compensatory trust score.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --void:#0a0c0f; --panel:#11151a; --panel-2:#161b21; --rule:#232b34;
+  --ink:#e8edf2; --dim:#8b96a3; --faint:#5a6472;
+  --live:#4ade80; --warn:#fbbf24; --fail:#f87171;
+  --beam:#38bdf8;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;background:var(--void);color:var(--ink);
+  font:15px/1.6 var(--sans);-webkit-font-smoothing:antialiased;
+  background-image:
+    radial-gradient(1100px 600px at 15% -10%, rgba(56,189,248,.07), transparent 60%),
+    radial-gradient(900px 500px at 95% 0%, rgba(74,222,128,.045), transparent 55%),
+    linear-gradient(var(--void), var(--void));
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.45;
+  background-image:linear-gradient(rgba(255,255,255,.016) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(255,255,255,.016) 1px,transparent 1px);
+  background-size:52px 52px;
+  -webkit-mask-image:radial-gradient(ellipse at 50% 0%, #000 40%, transparent 85%);
+  mask-image:radial-gradient(ellipse at 50% 0%, #000 40%, transparent 85%);
+}
+.shell{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:0 24px 72px}
+
+header{padding:30px 0 22px;display:flex;align-items:flex-start;gap:22px;flex-wrap:wrap}
+.mark{display:flex;align-items:center;gap:13px}
+.mark svg{flex:none}
+h1{font-size:17px;letter-spacing:.02em;margin:0;font-weight:600}
+.tagline{color:var(--dim);font-size:13px;margin:2px 0 0;max-width:52ch}
+.status{margin-left:auto;display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.chip{
+  font:500 11.5px/1 var(--mono);letter-spacing:.04em;text-transform:uppercase;
+  color:var(--dim);border:1px solid var(--rule);border-radius:999px;
+  padding:6px 11px;background:var(--panel);white-space:nowrap;
+}
+.chip b{color:var(--ink);font-weight:600}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--faint);display:inline-block;margin-right:7px;vertical-align:1px}
+.dot.on{background:var(--live);box-shadow:0 0 0 3px rgba(74,222,128,.16)}
+.dot.off{background:var(--fail);box-shadow:0 0 0 3px rgba(248,113,113,.16)}
+
+.console{
+  border:1px solid var(--rule);border-radius:14px;
+  background:linear-gradient(var(--panel),var(--panel-2));
+  padding:20px;box-shadow:0 24px 60px -30px rgba(0,0,0,.9);
+}
+.ask{display:flex;gap:12px;align-items:stretch}
+.ask input{
+  flex:1;background:var(--void);border:1px solid var(--rule);border-radius:10px;
+  color:var(--ink);font:15px/1.4 var(--sans);padding:15px 17px;outline:none;
+  transition:border-color .18s,box-shadow .18s;min-width:0;
+}
+.ask input::placeholder{color:var(--faint)}
+.ask input:focus{border-color:var(--beam);box-shadow:0 0 0 4px rgba(56,189,248,.12)}
+button.run{
+  border:0;border-radius:10px;padding:0 26px;cursor:pointer;white-space:nowrap;
+  font:600 14px var(--sans);letter-spacing:.02em;
+  background:linear-gradient(180deg,#38bdf8,#0ea5e9);color:#04121b;
+  transition:filter .18s,transform .06s;
+}
+button.run:hover{filter:brightness(1.09)}
+button.run:active{transform:translateY(1px)}
+button.run[disabled]{opacity:.5;cursor:not-allowed;filter:none}
+.examples{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}
+.ex{
+  font:12.5px var(--sans);color:var(--dim);background:var(--void);
+  border:1px solid var(--rule);border-radius:8px;padding:6px 11px;cursor:pointer;
+  transition:border-color .16s,color .16s;text-align:left;
+}
+.ex:hover{border-color:var(--beam);color:var(--ink)}
+.ex[data-kind="out"]{border-style:dashed}
+
+.stage{margin-top:22px;display:none}
+.stage.show{display:block;animation:rise .45s cubic-bezier(.22,1,.36,1)}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+.verdict{
+  display:flex;align-items:center;gap:16px;padding:16px 20px;border-radius:12px;
+  border:1px solid var(--rule);background:var(--panel);margin-bottom:18px;
+}
+.verdict .big{font:600 15px var(--sans)}
+.verdict .sub{color:var(--dim);font-size:13px;margin-top:2px}
+.verdict.ok{border-color:rgba(74,222,128,.35);background:linear-gradient(90deg,rgba(74,222,128,.09),transparent 60%)}
+.verdict.no{border-color:rgba(248,113,113,.35);background:linear-gradient(90deg,rgba(248,113,113,.09),transparent 60%)}
+.verdict.abst{border-color:rgba(251,191,36,.35);background:linear-gradient(90deg,rgba(251,191,36,.09),transparent 60%)}
+
+.cols{display:grid;grid-template-columns:1.35fr .95fr;gap:18px;align-items:start}
+@media (max-width:940px){.cols{grid-template-columns:1fr}}
+
+.card{border:1px solid var(--rule);border-radius:12px;background:var(--panel);padding:18px 20px}
+.card h2{
+  font:600 11.5px/1 var(--mono);letter-spacing:.11em;text-transform:uppercase;
+  color:var(--faint);margin:0 0 14px;
+}
+.answer{font-size:15.5px;line-height:1.72}
+.answer .cite{
+  font:600 11px var(--mono);color:var(--beam);background:rgba(56,189,248,.11);
+  border:1px solid rgba(56,189,248,.3);border-radius:4px;padding:1px 5px;margin:0 1px;
+  cursor:pointer;transition:background .15s;
+}
+.answer .cite:hover{background:rgba(56,189,248,.24)}
+
+.gauge{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.gauge svg{flex:none}
+.gauge .legend{font-size:12.5px;color:var(--dim);line-height:1.75;min-width:170px;flex:1}
+.gauge .row{display:flex;align-items:center;gap:8px}
+.gauge .swatch{width:10px;height:10px;border-radius:2px;flex:none}
+.gauge .val{font:600 13px var(--mono);color:var(--ink);margin-left:auto;padding-left:14px}
+.collapse-note{
+  font-size:12.5px;color:var(--dim);border-left:2px solid var(--rule);
+  padding-left:12px;margin-top:12px;line-height:1.6;
+}
+.collapse-note b{color:var(--warn);font-weight:600}
+
+.metric{margin:0 0 13px}
+.metric .lab{display:flex;align-items:baseline;gap:8px;margin-bottom:5px}
+.metric .name{font-size:13.5px}
+.metric .num{margin-left:auto;font:600 13px var(--mono);font-variant-numeric:tabular-nums}
+.metric .track{height:6px;border-radius:3px;background:#0d1117;overflow:hidden;border:1px solid var(--rule)}
+.metric .fill{display:block;height:100%;border-radius:3px;width:0;transition:width .85s cubic-bezier(.22,1,.36,1)}
+.metric .hint{font-size:11.5px;color:var(--faint);margin-top:4px}
+.na{color:var(--faint);font-style:italic}
+
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{
+  text-align:left;font:600 10.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;
+  color:var(--faint);padding:0 10px 9px;border-bottom:1px solid var(--rule);
+}
+td{padding:11px 10px;border-bottom:1px solid rgba(35,43,52,.6);vertical-align:top}
+td.n{text-align:right;font:600 13px var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+.tblwrap{overflow-x:auto}
+.psg{border-left:2px solid var(--rule);padding:3px 0 3px 14px;margin:13px 0;font-size:13.5px;color:var(--dim);transition:border-color .3s}
+.psg .meta{font:11.5px var(--mono);color:var(--faint);margin-bottom:4px;transition:color .3s}
+.psg.hit{border-left-color:var(--beam)}
+.psg.hit .meta{color:var(--beam)}
+
+.scan{display:none;padding:26px 20px;text-align:center}
+.scan.show{display:block}
+.scan .steps{display:flex;justify-content:center;gap:0;flex-wrap:wrap;margin-bottom:16px}
+.scan .step{font:11.5px var(--mono);color:var(--faint);padding:0 14px;position:relative;transition:color .3s}
+.scan .step.done{color:var(--live)}
+.scan .step.active{color:var(--beam)}
+.scan .step+.step::before{content:"";position:absolute;left:0;top:50%;width:1px;height:11px;background:var(--rule);transform:translateY(-50%)}
+.trace{height:2px;background:#0d1117;border-radius:2px;overflow:hidden;max-width:420px;margin:0 auto}
+.trace i{display:block;height:100%;width:38%;background:linear-gradient(90deg,transparent,var(--beam),transparent);animation:sweep 1.15s linear infinite}
+@keyframes sweep{from{transform:translateX(-100%)}to{transform:translateX(360%)}}
+@media (prefers-reduced-motion:reduce){
+  .trace i{animation:none;width:100%;opacity:.4}
+  .stage.show{animation:none}
+  .metric .fill{transition:none}
+}
+
+footer{margin-top:30px;color:var(--faint);font-size:12.5px;display:flex;gap:18px;flex-wrap:wrap}
+footer a{color:var(--dim);text-decoration:none;border-bottom:1px solid var(--rule)}
+footer a:hover{color:var(--beam);border-color:var(--beam)}
+.err{color:var(--fail);font:13px var(--mono);padding:14px 0}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<header>
+  <div class="mark">
+    <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
+      <rect x="1.5" y="1.5" width="27" height="27" rx="7" stroke="#232b34" stroke-width="1.5"/>
+      <path d="M6 19.5 L11 19.5 L13.5 9.5 L16.5 22 L19 14.5 L21.5 17.5 L24 17.5"
+            stroke="#38bdf8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>
+    <div>
+      <h1>RAG Trustworthiness</h1>
+      <p class="tagline">Every answer returns its evidence and a measurement of how well that evidence supports it.</p>
+    </div>
+  </div>
+  <div class="status">
+    <span class="chip"><span class="dot" id="dot"></span><span id="svc">connecting</span></span>
+    <span class="chip">passages <b id="npsg">—</b></span>
+    <span class="chip">nli <b id="nli">—</b></span>
+  </div>
+</header>
+
+<div class="console">
+  <div class="ask">
+    <label for="q" class="sr-only" style="position:absolute;left:-9999px">Question</label>
+    <input id="q" type="text" autocomplete="off" spellcheck="false"
+           placeholder="Ask something the corpus covers — or something it does not.">
+    <button class="run" id="go">Measure</button>
+  </div>
+  <div class="examples" id="ex"></div>
+</div>
+
+<div class="scan" id="scan" aria-live="polite">
+  <div class="steps">
+    <span class="step">retrieve</span>
+    <span class="step">gate</span>
+    <span class="step">generate</span>
+    <span class="step">decompose</span>
+    <span class="step">entail</span>
+    <span class="step">score</span>
+  </div>
+  <div class="trace"><i></i></div>
+</div>
+
+<div class="stage" id="stage"></div>
+
+<footer>
+  <a href="https://github.com/hharsha98/rag-trustworthiness-industrial">Source</a>
+  <a href="https://github.com/hharsha98/rag-trustworthiness-industrial/blob/main/METRICS.md">Formal spec</a>
+  <span id="foot"></span>
+</footer>
+
+</div>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const f3 = x => (x === null || x === undefined || Number.isNaN(x)) ? null : Number(x).toFixed(3);
+
+const META = {
+  faithfulness:      ["Faithfulness",       "share of the answer the passages actually entail"],
+  attribution:       ["Attribution",        "do the citations point at the right passage"],
+  relevance:         ["Context relevance",  "did retrieval find material related to the question"],
+  answer_relevance:  ["Answer relevance",   "does the answer address the question asked"],
+  conciseness:       ["Conciseness",        "redundancy among the answer's own claims"],
+  contradiction_rate:["Contradiction (κ)",  "claims the passages actively refute"],
+};
+const ORDER = ["faithfulness","attribution","relevance","answer_relevance","conciseness","contradiction_rate"];
+const tone = (k,v) => k === "contradiction_rate"
+  ? (v > .5 ? "var(--fail)" : v > .25 ? "var(--warn)" : "var(--live)")
+  : (v >= .7 ? "var(--live)" : v >= .4 ? "var(--warn)" : "var(--fail)");
+
+function gauge(arith, geom){
+  const R = 52, SW = 11, R2 = R - SW - 3;
+  const C = 2 * Math.PI * R, C2 = 2 * Math.PI * R2;
+  const clamp = v => Math.max(0, Math.min(1, Number(v) || 0));
+  const gap = (Number(arith) || 0) - (Number(geom) || 0);
+  return `
+  <div class="gauge">
+    <svg width="132" height="132" viewBox="0 0 132 132" role="img"
+         aria-label="Trust: geometric ${f3(geom) ?? "unavailable"}, arithmetic ${f3(arith) ?? "unavailable"}">
+      <circle cx="66" cy="66" r="${R}" fill="none" stroke="#0d1117" stroke-width="${SW}"/>
+      <circle cx="66" cy="66" r="${R}" fill="none" stroke="#334155" stroke-width="${SW}"
+              stroke-linecap="round" stroke-dasharray="${C*clamp(arith)} ${C}" transform="rotate(-90 66 66)"/>
+      <circle cx="66" cy="66" r="${R2}" fill="none" stroke="#0d1117" stroke-width="${SW}"/>
+      <circle cx="66" cy="66" r="${R2}" fill="none" stroke="${tone('t', geom)}" stroke-width="${SW}"
+              stroke-linecap="round" stroke-dasharray="${C2*clamp(geom)} ${C2}" transform="rotate(-90 66 66)"/>
+      <text x="66" y="62" text-anchor="middle" fill="#e8edf2" style="font:600 25px var(--mono)">${f3(geom) ?? "—"}</text>
+      <text x="66" y="80" text-anchor="middle" fill="#5a6472" style="font:500 9.5px var(--mono);letter-spacing:.14em">TRUST</text>
+    </svg>
+    <div class="legend">
+      <div class="row"><span class="swatch" style="background:${tone('t',geom)}"></span>
+        Geometric <span class="val">${f3(geom) ?? "—"}</span></div>
+      <div class="row"><span class="swatch" style="background:#334155"></span>
+        Arithmetic <span class="val">${f3(arith) ?? "—"}</span></div>
+      <div class="collapse-note">${gap > 0.04
+        ? `The geometric score sits <b>${gap.toFixed(3)} lower</b>. It is non-compensatory — one weak dimension pulls it down, where the arithmetic mean lets the others mask it.`
+        : `Both aggregates agree, so no single dimension is dragging. The geometric form can never exceed the arithmetic one.`}</div>
+    </div>
+  </div>`;
+}
+
+function metricRow(k, v){
+  const [name, hint] = META[k] || [k, ""];
+  if (v === null || v === undefined) {
+    return `<div class="metric"><div class="lab"><span class="name">${name}</span>
+      <span class="num na">undefined</span></div><div class="track"></div>
+      <div class="hint">not computable for this answer — dropped from the score, not counted as zero</div></div>`;
+  }
+  return `<div class="metric">
+    <div class="lab"><span class="name">${name}</span><span class="num" style="color:${tone(k,v)}">${f3(v)}</span></div>
+    <div class="track"><i class="fill" style="background:${tone(k,v)}" data-w="${Math.max(0,Math.min(1,v))*100}"></i></div>
+    <div class="hint">${hint}</div></div>`;
+}
+
+const linkCites = t => esc(t).replace(/\[(\d+)\]/g, (_, n) => `<span class="cite" data-p="${n}" role="button" tabindex="0">[${n}]</span>`);
+
+let scanTimer = null;
+function startScan(){
+  const steps = [...document.querySelectorAll(".scan .step")];
+  steps.forEach(s => s.className = "step");
+  $("#scan").classList.add("show");
+  $("#stage").classList.remove("show");
+  let i = 0;
+  (function tick(){
+    if (i > 0) steps[i-1].className = "step done";
+    if (i < steps.length) steps[i].className = "step active";
+    i++;
+    if (i <= steps.length) scanTimer = setTimeout(tick, 620);
+  })();
+}
+const stopScan = () => { clearTimeout(scanTimer); $("#scan").classList.remove("show"); };
+
+function render(d){
+  const m = d.metrics || {}, t = d.trust || {};
+  let h = "";
+
+  if (d.abstained){
+    h += `<div class="verdict abst"><div>
+      <div class="big">Declined to answer</div>
+      <div class="sub">${esc(d.abstain_reason || "Nothing in the corpus supports an answer.")}</div>
+    </div></div>
+    <div class="card"><h2>Why this is the correct outcome</h2>
+    <p style="margin:0;color:var(--dim);font-size:13.5px;line-height:1.7">
+    The retrieval gate fires <em>before</em> generation, so a question the corpus cannot answer costs
+    nothing to refuse. Declining is a first-class result here — a system that always answers has no
+    way to tell you when it should not have.</p></div>`;
+  } else {
+    const ok = d.is_trustworthy;
+    h += `<div class="verdict ${ok ? "ok" : "no"}"><div>
+      <div class="big">${ok ? "Answer met the trust threshold" : "Answer fell below the trust threshold"}</div>
+      <div class="sub">${ok
+        ? "Grounding, citation accuracy and relevance all cleared their bars."
+        : "At least one dimension is weak enough to pull the non-compensatory score down."}</div>
+    </div></div>`;
+
+    h += `<div class="cols"><div>
+      <div class="card"><h2>Answer</h2><div class="answer">${linkCites(d.answer)}</div></div>`;
+
+    // Support scores arrive at the TOP level as `per_claim_support`, and the
+    // claim -> passage mapping as `citations` ({claimIndex: passageIndex}), not
+    // inside `metrics`. Read them from where the API actually puts them.
+    const support = d.per_claim_support || [];
+    const cites = d.citations || {};
+    if (d.claims && d.claims.length){
+      h += `<div class="card" style="margin-top:18px"><h2>Per-claim grounding</h2><div class="tblwrap">
+        <table><thead><tr><th>Claim</th><th style="text-align:right">Support</th><th style="text-align:right">Cites</th></tr></thead><tbody>` +
+        d.claims.map((c,i) => {
+          const s = support[i];
+          const p = cites[String(i)];
+          return `<tr><td>${esc(c)}</td>
+            <td class="n" style="color:${s === undefined ? "var(--faint)" : tone('faithfulness', s)}">${f3(s) ?? "—"}</td>
+            <td class="n" style="color:var(--faint)">${p === undefined ? "—" : "#" + (p + 1)}</td></tr>`;
+        }).join("") + `</tbody></table>
+        <p class="hint" style="margin:10px 0 0;font-size:11.5px;color:var(--faint)">
+        Support is the best entailment probability across retrieved passages. A claim can be
+        well-supported yet uncited — that gap is exactly what attribution measures.</p>
+        </div></div>`;
+    }
+    h += `</div><div>
+      <div class="card">${gauge(t.arithmetic, t.geometric)}</div>
+      <div class="card" style="margin-top:18px"><h2>Metrics</h2>${
+        ORDER.filter(k => k in m).map(k => metricRow(k, m[k])).join("")}</div>
+      </div></div>`;
+  }
+
+  const ps = d.passages || [];
+  if (ps.length){
+    h += `<div class="card" style="margin-top:18px"><h2>Retrieved passages</h2>` +
+      ps.map((p,i) => `<div class="psg" id="p${i+1}">
+        <div class="meta">#${p.rank ?? i+1} · similarity ${f3(p.score) ?? "—"}</div>${esc(p.text)}</div>`).join("") +
+      `</div>`;
+  }
+
+  $("#stage").innerHTML = h;
+  $("#stage").classList.add("show");
+  requestAnimationFrame(() => document.querySelectorAll(".fill").forEach(el => el.style.width = el.dataset.w + "%"));
+  const jump = c => {
+    const el = document.getElementById("p" + c.dataset.p);
+    if (el){ el.scrollIntoView({behavior:"smooth",block:"center"}); el.classList.add("hit");
+             setTimeout(() => el.classList.remove("hit"), 2200); }
+  };
+  document.querySelectorAll(".cite").forEach(c => {
+    c.onclick = () => jump(c);
+    c.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); jump(c); } };
+  });
+}
+
+async function ask(q){
+  if (!q || !q.trim()) return;
+  $("#go").disabled = true; startScan();
+  try{
+    const r = await fetch("/answer", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({question:q})
+    });
+    const d = await r.json();
+    stopScan();
+    if (!r.ok){
+      $("#stage").innerHTML = `<div class="err">${esc(d.detail || ("HTTP " + r.status))}</div>`;
+      $("#stage").classList.add("show");
+    } else render(d);
+  }catch(e){
+    stopScan();
+    $("#stage").innerHTML = `<div class="err">Request failed — ${esc(e.message)}</div>`;
+    $("#stage").classList.add("show");
+  }finally{ $("#go").disabled = false; }
+}
+
+$("#go").onclick = () => ask($("#q").value);
+$("#q").addEventListener("keydown", e => { if (e.key === "Enter") ask($("#q").value); });
+
+fetch("/health").then(r => r.json()).then(d => {
+  $("#dot").className = "dot on"; $("#svc").textContent = "online";
+  $("#npsg").textContent = d.passages ?? "—";
+  $("#nli").textContent = (d.nli_model || "—").split("/").pop();
+}).catch(() => { $("#dot").className = "dot off"; $("#svc").textContent = "offline"; });
+
+fetch("/api/examples").then(r => r.json()).then(list => {
+  if (!Array.isArray(list) || !list.length) return;
+  const inC = list.filter(x => x.category === "pdf").slice(0, 3);
+  const out = list.filter(x => x.category !== "pdf").slice(0, 2);
+  $("#ex").innerHTML = [...inC, ...out].map(x =>
+    `<button class="ex" data-kind="${x.category === "pdf" ? "in" : "out"}">${esc(x.question)}</button>`).join("");
+  document.querySelectorAll(".ex").forEach(b => b.onclick = () => { $("#q").value = b.textContent; ask(b.textContent); });
+}).catch(() => {});
+
+$("#foot").textContent = "Answers are deterministic — the same question returns the same score.";
+</script>
+</body>
+</html>

@@ -8,6 +8,8 @@ backend or a bad request produce a non-200 status.
 """
 from __future__ import annotations
 
+import json
+import logging
 import os
 import time
 from dataclasses import asdict, replace
@@ -15,11 +17,22 @@ from pathlib import Path
 from typing import Any, Optional
 
 from fastapi import FastAPI, HTTPException
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 
 from .config import Config
 from .generation.base import GenerationError
 from .pipeline import RAGTrustPipeline
+
+logger = logging.getLogger(__name__)
+
+# Repo root, resolved from this file's location rather than the process's
+# current working directory -- `dashboard/` and `data/cached_answers.json` are
+# both found relative to it, so `/api/examples` and the static mount work the
+# same whether the service is launched via `ragtrust serve`, `uvicorn
+# ragtrust.service:app` from the repo root (as the systemd unit in deploy/
+# does), or pytest.
+_REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 # ------------------------------------------------------------------------ models
@@ -82,6 +95,13 @@ def _make_generator(name: str, model: str = None):
         from .generation.cached import CachedGenerator
 
         return CachedGenerator(model or "data/cached_answers.json")
+    if name == "openai_compat":
+        from .generation.openai_compat import DEFAULT_MODEL, OpenAICompatGenerator
+
+        # base_url/api_key are read from RAGTRUST_LLM_BASE_URL/RAGTRUST_LLM_API_KEY
+        # inside the constructor when left as None -- deployment (deploy/ragtrust.service)
+        # configures those via its EnvironmentFile rather than a CLI/service argument.
+        return OpenAICompatGenerator(model=model or DEFAULT_MODEL)
     raise ValueError(f"Unknown generator: {name!r}")
 
 
@@ -156,6 +176,42 @@ def create_app(index_dir: str, config: Config = None, generator: Any = None) -> 
         payload = result.to_dict()
         payload["latency_ms"] = round(latency_ms, 2)
         return payload
+
+    @app.get("/api/examples")
+    def examples() -> list:
+        """Preset questions for the dashboard's one-click examples: just the
+        question text and its category from `data/cached_answers.json`, never
+        the cached answer/passages (those stay internal to the `cached`
+        generator backend). Returns [] if the file is absent or unreadable
+        rather than erroring -- example presets are a UI nicety, not something
+        that should be able to break the API."""
+        path = _REPO_ROOT / "data" / "cached_answers.json"
+        if not path.is_file():
+            return []
+        try:
+            with path.open("r", encoding="utf-8") as f:
+                data = json.load(f)
+        except (OSError, ValueError):
+            return []
+        return [
+            {"question": question, "category": entry.get("category") if isinstance(entry, dict) else None}
+            for question, entry in data.items()
+        ]
+
+    # Mounted LAST and at "/" so it never shadows the API routes above: Starlette
+    # matches routes in registration order and returns on the first match, so
+    # /health, /config, /answer, and /api/examples (all registered earlier) win
+    # over this catch-all mount even though its prefix is "/". `html=True` makes
+    # StaticFiles serve dashboard/index.html for "/" and other directory paths.
+    # A missing dashboard/ must never take the API down with it -- log and move on.
+    dashboard_dir = _REPO_ROOT / "dashboard"
+    if dashboard_dir.is_dir():
+        app.mount("/", StaticFiles(directory=str(dashboard_dir), html=True), name="dashboard")
+    else:
+        logger.warning(
+            "dashboard/ directory not found at %s; serving API only (no frontend).",
+            dashboard_dir,
+        )
 
     return app
 

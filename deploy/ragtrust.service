@@ -1,0 +1,48 @@
+# systemd unit for the ragtrust API service.
+#
+# Runs `uvicorn ragtrust.service:app` directly rather than via `ragtrust serve`
+# (the CLI entry point) -- this matters because the systemd process therefore
+# goes through service.py's `_LazyASGIApp`, which reads RAGTRUST_INDEX /
+# RAGTRUST_GENERATOR / RAGTRUST_MODEL from the environment (see .env below),
+# not through cli.py's argparse flags.
+#
+# Binds 127.0.0.1:8402 (loopback only). Caddy (deploy/Caddyfile.snippet)
+# terminates TLS and reverse-proxies to this port -- the service itself is
+# never exposed directly to the internet.
+#
+# Install:
+#   sudo cp deploy/ragtrust.service /etc/systemd/system/ragtrust.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now ragtrust
+#
+# See deploy/README.md for the full deployment walkthrough.
+
+[Unit]
+Description=ragtrust trustworthiness-scored RAG API
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=admin
+Group=admin
+WorkingDirectory=/home/admin/projects/rag-trustworthiness-industrial
+EnvironmentFile=/home/admin/projects/rag-trustworthiness-industrial/.env
+ExecStart=/home/admin/projects/rag-trustworthiness-industrial/.venv/bin/uvicorn ragtrust.service:app --host 127.0.0.1 --port 8402
+
+# Crash/OOM/unhandled-exception recovery: always come back up.
+Restart=always
+RestartSec=5
+
+# Basic hardening -- the service only needs to read its own project directory
+# and talk to OmniRoute over loopback; it writes nothing outside /tmp.
+NoNewPrivileges=true
+PrivateTmp=true
+
+# journalctl -u ragtrust -f
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=ragtrust
+
+[Install]
+WantedBy=multi-user.target

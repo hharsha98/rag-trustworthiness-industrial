@@ -128,3 +128,49 @@ def test_answer_unreachable_generator_returns_503(tmp_path):
     resp = client.post("/answer", json={"question": "How does photosynthesis work?"})
     assert resp.status_code == 503
     assert "unreachable" in resp.json()["detail"].lower()
+
+
+# ------------------------------------------------------ dashboard mount / /api/examples
+
+
+def test_create_app_still_exposes_health_and_answer_without_dashboard_dir(tmp_path):
+    """`dashboard/` does not exist in this repo (a frontend built separately,
+    per the task boundaries), so every test in this file already exercises the
+    "missing frontend" path -- create_app must still start (no crash, just a
+    logged warning) and /health, /answer must still be routed normally rather
+    than swallowed by a static-file mount or 404."""
+    client = _client(
+        tmp_path,
+        generator=StubGenerator(text="Photosynthesis converts sunlight into chemical energy."),
+        retrieval_gate=-2.0, abstain_threshold=0.1,
+    )
+    resp = client.get("/health")
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "ok"
+
+    resp = client.post("/answer", json={"question": "How does photosynthesis work?"})
+    assert resp.status_code == 200
+    assert "trust" in resp.json()
+
+
+def test_api_examples_returns_a_list_without_erroring(tmp_path):
+    # data/cached_answers.json exists in this repo, so this also covers the
+    # "file present" branch; test_api_examples_empty_when_cached_answers_file_absent
+    # below covers the "file absent" branch explicitly with a monkeypatched root.
+    client = _client(tmp_path)
+    resp = client.get("/api/examples")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert isinstance(body, list)
+    if body:
+        assert set(body[0].keys()) == {"question", "category"}
+
+
+def test_api_examples_empty_when_cached_answers_file_absent(tmp_path, monkeypatch):
+    import ragtrust.service as service_module
+
+    monkeypatch.setattr(service_module, "_REPO_ROOT", tmp_path)
+    client = _client(tmp_path)
+    resp = client.get("/api/examples")
+    assert resp.status_code == 200
+    assert resp.json() == []
