@@ -52,6 +52,18 @@ class OpenAICompatGenerator:
             # default -- an explicit argument always wins.
             model = os.environ["RAGTRUST_LLM_MODEL"]
         self.model = model
+        # Read timeout is env-overridable because the right value depends on what
+        # sits behind the endpoint, not on this code. A router that queues behind
+        # a busy upstream, or cold-starts a provider, can take well over a minute
+        # for a single completion -- observed against a live deployment, where the
+        # default 60s produced a "backend unreachable" 503 for an endpoint that
+        # was in fact healthy, merely slow. Raising it trades a longer worst-case
+        # wait for not mislabelling slowness as failure.
+        if timeout == TIMEOUT_S and os.environ.get("RAGTRUST_LLM_TIMEOUT"):
+            try:
+                timeout = float(os.environ["RAGTRUST_LLM_TIMEOUT"])
+            except ValueError:
+                pass  # keep the default rather than crash on a malformed value
         self.timeout = timeout
         self.temperature = temperature
         self.seed = seed
