@@ -1,0 +1,255 @@
+{
+  "_method": "Positives: BEIR qrels (score > 0). Negatives: random (uniform corpus sample, seed-determined) and hard (top-ranked non-relevant documents by BM25, src/ragtrust/retrieval/sparse.py::BM25Retriever) -- both independent of the dense embedder under test (see module docstring, Trap 1). ROC-AUC/PR-AUC with 10,000-sample bootstrap 95% CIs, reported separately per negative tier. BM25 lexical baseline compared via paired permutation test. Floor analysis (Trap 2) reports score DISTRIBUTIONS under clamp vs affine mappings on known-irrelevant passages, plus a numerical proof that AUC is identical between the two mappings (ROC-AUC is invariant to this monotone remap, so an AUC comparison between them cannot test the floor -- see docstring).",
+  "embed_model": "sentence-transformers/msmarco-distilbert-base-v4",
+  "seed": 0,
+  "n_random_neg_per_query": 5,
+  "n_hard_neg_per_query": 5,
+  "n_boot": 10000,
+  "n_perm": 10000,
+  "nfcorpus_included": true,
+  "nfcorpus_skip_reason": null,
+  "datasets": {
+    "scifact": {
+      "n_corpus": 5183,
+      "n_queries": 300,
+      "n_pairs": 3339,
+      "analysis": {
+        "auc_by_tier": {
+          "random": {
+            "class_balance": {
+              "n": 1839,
+              "n_pos": 339,
+              "n_neg": 1500,
+              "rate_pos": 0.18433931484502447
+            },
+            "roc_auc": {
+              "point": 0.9562772861356932,
+              "ci_lo": 0.9415574237954768,
+              "ci_hi": 0.9694674041297935
+            },
+            "pr_auc": {
+              "point": 0.9055041205558556,
+              "ci_lo": 0.8822516286793185,
+              "ci_hi": 0.9273539649887637
+            }
+          },
+          "hard": {
+            "class_balance": {
+              "n": 1839,
+              "n_pos": 339,
+              "n_neg": 1500,
+              "rate_pos": 0.18433931484502447
+            },
+            "roc_auc": {
+              "point": 0.7445585054080629,
+              "ci_lo": 0.7122445427728613,
+              "ci_hi": 0.7753654375614553
+            },
+            "pr_auc": {
+              "point": 0.471855611075226,
+              "ci_lo": 0.4246001092455462,
+              "ci_hi": 0.5232368794776217
+            }
+          }
+        },
+        "bm25_comparison": {
+          "random": {
+            "auc_cosine": 0.9562772861356932,
+            "auc_bm25": 0.9720924287118977,
+            "diff_cosine_minus_bm25": -0.015815142576204533,
+            "p_value": 0.4453554644535546,
+            "n_permutations": 10000,
+            "cosine_significantly_better": false,
+            "bm25_significantly_better": false
+          },
+          "hard": {
+            "auc_cosine": 0.7445585054080629,
+            "auc_bm25": 0.610574237954769,
+            "diff_cosine_minus_bm25": 0.13398426745329395,
+            "p_value": 9.999000099990002e-05,
+            "n_permutations": 10000,
+            "cosine_significantly_better": true,
+            "bm25_significantly_better": false
+          }
+        },
+        "floor_analysis": {
+          "calibration": {
+            "clamp": {
+              "n": 3000,
+              "mean": 0.25013279127344434,
+              "median": 0.23986761606690152,
+              "p5": 0.00623740264603669,
+              "p95": 0.5195537787726323,
+              "min": 0.0,
+              "max": 0.7318341981986458
+            },
+            "affine": {
+              "n": 3000,
+              "mean": 0.6241968761064798,
+              "median": 0.6199338080334507,
+              "p5": 0.5031187013230183,
+              "p95": 0.7597768893863162,
+              "min": 0.4161677192746037,
+              "max": 0.8659170990993229
+            }
+          },
+          "auc_identity": {
+            "auc_clamp": 0.8504178957718781,
+            "auc_affine": 0.8504178957718781,
+            "abs_diff": 0.0,
+            "matches_to_1e9": true,
+            "frac_negative_cosine": 0.04103024857741839
+          }
+        },
+        "graded_sensitivity": null
+      }
+    },
+    "nfcorpus": {
+      "n_corpus": 3633,
+      "n_queries": 323,
+      "n_pairs": 15242,
+      "analysis": {
+        "auc_by_tier": {
+          "random": {
+            "class_balance": {
+              "n": 13949,
+              "n_pos": 12334,
+              "n_neg": 1615,
+              "rate_pos": 0.8842210911176428
+            },
+            "roc_auc": {
+              "point": 0.6125560947839318,
+              "ci_lo": 0.5996375394652753,
+              "ci_hi": 0.6256802968812831
+            },
+            "pr_auc": {
+              "point": 0.9272822595162835,
+              "ci_lo": 0.9242252405884447,
+              "ci_hi": 0.9303860169473721
+            }
+          },
+          "hard": {
+            "class_balance": {
+              "n": 13627,
+              "n_pos": 12334,
+              "n_neg": 1293,
+              "rate_pos": 0.9051148455272621
+            },
+            "roc_auc": {
+              "point": 0.24798104598597606,
+              "ci_lo": 0.23486741200795444,
+              "ci_hi": 0.26166458942897797
+            },
+            "pr_auc": {
+              "point": 0.8357809491258782,
+              "ci_lo": 0.8313535745217032,
+              "ci_hi": 0.8404697987025984
+            }
+          }
+        },
+        "bm25_comparison": {
+          "random": {
+            "auc_cosine": 0.6125560947839318,
+            "auc_bm25": 0.5497334007382749,
+            "diff_cosine_minus_bm25": 0.06282269404565688,
+            "p_value": 9.999000099990002e-05,
+            "n_permutations": 10000,
+            "cosine_significantly_better": true,
+            "bm25_significantly_better": false
+          },
+          "hard": {
+            "auc_cosine": 0.24798104598597606,
+            "auc_bm25": 0.04978501193451511,
+            "diff_cosine_minus_bm25": 0.19819603405146097,
+            "p_value": 9.999000099990002e-05,
+            "n_permutations": 10000,
+            "cosine_significantly_better": true,
+            "bm25_significantly_better": false
+          }
+        },
+        "floor_analysis": {
+          "calibration": {
+            "clamp": {
+              "n": 2908,
+              "mean": 0.14961732298725416,
+              "median": 0.10999708183457546,
+              "p5": 0.0,
+              "p95": 0.44913716546905186,
+              "min": 0.0,
+              "max": 0.7058683961016415
+            },
+            "affine": {
+              "n": 2908,
+              "mean": 0.5700701745000945,
+              "median": 0.5549985409172877,
+              "p5": 0.4644154703288097,
+              "p95": 0.724568582734526,
+              "min": 0.35495756029850734,
+              "max": 0.8529341980508207
+            }
+          },
+          "auc_identity": {
+            "auc_clamp": 0.45045308993669775,
+            "auc_affine": 0.4501691820888971,
+            "abs_diff": 0.00028390784780063516,
+            "matches_to_1e9": false,
+            "frac_negative_cosine": 0.21263613698989633
+          }
+        },
+        "graded_sensitivity": {
+          "grades_present": [
+            1,
+            2
+          ],
+          "top_grade": 2,
+          "n_positives_by_grade": {
+            "1": 11758,
+            "2": 576
+          },
+          "by_tier": {
+            "random": {
+              "all_positives": {
+                "n_pos": 12334,
+                "roc_auc": 0.6125560947839318
+              },
+              "top_grade_only": {
+                "n_pos": 576,
+                "n_neg": 1615,
+                "roc_auc": {
+                  "point": 0.8840353027175782,
+                  "ci_lo": 0.8667483257008944,
+                  "ci_hi": 0.9006500876117991
+                },
+                "pr_auc": {
+                  "point": 0.8070168766560729,
+                  "ci_lo": 0.7822699057935857,
+                  "ci_hi": 0.831936294547261
+                }
+              }
+            },
+            "hard": {
+              "all_positives": {
+                "n_pos": 12334,
+                "roc_auc": 0.24798104598597606
+              },
+              "top_grade_only": {
+                "n_pos": 576,
+                "n_neg": 1293,
+                "roc_auc": {
+                  "point": 0.5603073708859672,
+                  "ci_lo": 0.5319304132293546,
+                  "ci_hi": 0.5882624186323794
+                },
+                "pr_auc": {
+                  "point": 0.39006868029543246,
+                  "ci_lo": 0.36095886683978456,
+                  "ci_hi": 0.4233989007742356
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

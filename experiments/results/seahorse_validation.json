@@ -1,0 +1,166 @@
+{
+  "embed_model": "sentence-transformers/msmarco-distilbert-base-v4",
+  "seed": 0,
+  "n_total_rows": 101652,
+  "n_en_us_rows": 25053,
+  "n_distinct_summaries": 4355,
+  "n_q2_answered": 4143,
+  "n_q6_answered": 4140,
+  "n_both_q2_and_q6": 4139,
+  "n_analysis_population": 4143,
+  "n_total_available_q2": 4143,
+  "sampled": false,
+  "max_items": 6000,
+  "primary": {
+    "class_balance": {
+      "n": 4143,
+      "n_yes": 3708,
+      "n_no": 435,
+      "rate_yes": 0.8950036205648081
+    },
+    "conciseness": {
+      "roc_auc": {
+        "point": 0.6466806779997272,
+        "ci_lo": 0.6182033720194919,
+        "ci_hi": 0.6753567930166524
+      },
+      "pr_auc": {
+        "point": 0.9231203274073849,
+        "ci_lo": 0.9170315839224955,
+        "ci_hi": 0.9293845698936446
+      }
+    }
+  },
+  "length_confound": {
+    "frac_lt2_claims": 0.6845281197200097,
+    "n_claims": {
+      "sign": -1,
+      "roc_auc": {
+        "point": 0.6094669493732099,
+        "ci_lo": 0.5839243512008828,
+        "ci_hi": 0.6357460802365807
+      },
+      "pr_auc": {
+        "point": 0.9183033242956828,
+        "ci_lo": 0.9127337730923185,
+        "ci_hi": 0.9240600974654334
+      }
+    },
+    "n_words": {
+      "sign": 1,
+      "roc_auc": {
+        "point": 0.5040651464990267,
+        "ci_lo": 0.4740272430532307,
+        "ci_hi": 0.5342872199283314
+      },
+      "pr_auc": {
+        "point": 0.8857030772352461,
+        "ci_lo": 0.8764297301549231,
+        "ci_hi": 0.89589938315269
+      }
+    },
+    "better_baseline": "n_claims",
+    "c_vs_better_baseline_permutation_test": {
+      "statistic": "roc_auc",
+      "stat_c": 0.6466806779997272,
+      "stat_baseline": 0.6094669493732099,
+      "diff_c_minus_baseline": 0.037213728626517284,
+      "p_value": 0.13458654134586542,
+      "n_permutations": 10000
+    },
+    "c_significantly_beats_better_baseline": false,
+    "headline": "C is UNDEFINED-BY-CONSTRUCTION on 68.5% of this population (<2 claims => C == 1.0 exactly), and on that majority it is a constant carrying no information. Across the full population it therefore cannot beat the n_claims baseline (p=0.1346). But restricted to the 1307 summaries where C is actually computed (>=2 claims), C reaches 0.820 against 0.566 for the best length baseline -- a margin of +0.254 at p=0.0001. So the metric is not a dressed-up sentence count; it is a valid redundancy signal that is simply inapplicable to short answers. The design defect this exposes is returning 1.0 (a PERFECT score, which propagates into T_geom) where the honest answer is 'undefined'.",
+    "restricted_ge2_claims": {
+      "class_balance": {
+        "n": 1307,
+        "n_yes": 1092,
+        "n_no": 215,
+        "rate_yes": 0.8355011476664116
+      },
+      "conciseness": {
+        "roc_auc": {
+          "point": 0.8196737371155975,
+          "ci_lo": 0.7834608463242184,
+          "ci_hi": 0.8529777877161598
+        },
+        "pr_auc": {
+          "point": 0.944664747627734,
+          "ci_lo": 0.9295524460898928,
+          "ci_hi": 0.9581272402998702
+        }
+      },
+      "n_claims": {
+        "sign": -1,
+        "roc_auc": {
+          "point": 0.5658829542550473,
+          "ci_lo": 0.5248520423375075,
+          "ci_hi": 0.6060149927591788
+        },
+        "pr_auc": {
+          "point": 0.8642013791740166,
+          "ci_lo": 0.8504952239812223,
+          "ci_hi": 0.8780883724139371
+        }
+      },
+      "n_words": {
+        "sign": 1,
+        "roc_auc": {
+          "point": 0.5376458812505324,
+          "ci_lo": 0.49540601840020443,
+          "ci_hi": 0.5807083759263991
+        },
+        "pr_auc": {
+          "point": 0.8418185596146908,
+          "ci_lo": 0.8224331922424194,
+          "ci_hi": 0.862951099487181
+        }
+      },
+      "better_baseline": "n_claims",
+      "c_vs_better_baseline_permutation_test": {
+        "statistic": "roc_auc",
+        "stat_c": 0.8196737371155975,
+        "stat_baseline": 0.5658829542550473,
+        "diff_c_minus_baseline": 0.25379078286055023,
+        "p_value": 9.999000099990002e-05,
+        "n_permutations": 10000
+      },
+      "c_significantly_beats_better_baseline": true
+    }
+  },
+  "discriminant_validity": {
+    "n_paired": 4139,
+    "class_balance_q2": {
+      "n": 4139,
+      "n_yes": 3704,
+      "n_no": 435,
+      "rate_yes": 0.8949021502778449
+    },
+    "class_balance_q6": {
+      "n": 4139,
+      "n_yes": 1566,
+      "n_no": 2573,
+      "rate_yes": 0.3783522589997584
+    },
+    "auc_vs_q2": {
+      "point": 0.646665301258658,
+      "ci_lo": 0.6179292889327475,
+      "ci_hi": 0.6753036403639433
+    },
+    "auc_vs_q6": {
+      "point": 0.5136027982899339,
+      "ci_lo": 0.49919319472923207,
+      "ci_hi": 0.5282530256981455
+    },
+    "paired_permutation_test": {
+      "statistic": "roc_auc",
+      "auc_q2": 0.646665301258658,
+      "auc_q6": 0.5136027982899339,
+      "diff_q2_minus_q6": 0.13306250296872402,
+      "p_value": 9.999000099990002e-05,
+      "n_permutations": 10000
+    },
+    "q2_tracks_more_than_q6": true,
+    "gap_significant": true,
+    "verdict": "SUPPORTED"
+  }
+}

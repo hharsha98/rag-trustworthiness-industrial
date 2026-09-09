@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ragtrust"
+version = "0.1.0"
+description = "Mathematically corrected, validated trustworthiness metrics for RAG systems."
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "scipy",
+    "pandas",
+    "scikit-learn",
+    "torch",
+    "transformers",
+    "sentence-transformers",
+    "faiss-cpu",
+    "pdfplumber",
+    "requests",
+    # Used by the committed experiment scripts to produce the figures in
+    # experiments/results/.
+    "matplotlib",
+    # CLI (Deliverable 1) + HTTP service (Deliverable 2).
+    "fastapi",
+    "uvicorn",
+    # Needed by fastapi.testclient.TestClient (tests/test_service.py), not by the
+    # service itself at runtime.
+    "httpx",
+]
+
+[project.scripts]
+ragtrust = "ragtrust.cli:main"
+
+[project.optional-dependencies]
+dev = ["pytest", "hypothesis"]
+benchmarks = ["pyarrow"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: needs real model weights and/or network access; skipped by default",
+]
+addopts = "-m \"not slow\""

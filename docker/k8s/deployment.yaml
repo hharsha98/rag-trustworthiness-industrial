@@ -1,0 +1,75 @@
+# Kubernetes deployment for the ragtrust Gradio demo.
+#
+# Written with the guardrails a naive first pass typically omits: real resource
+# requests/limits, liveness + readiness probes, a ConfigMap for env vars instead of
+# hardcoding them into the container spec, and an explicit imagePullPolicy.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ragtrust-config
+  labels:
+    app: ragtrust
+data:
+  RAGTRUST_GENERATOR: "hf_api"
+  RAGTRUST_NLI_MODEL: "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli"
+  GRADIO_SERVER_NAME: "0.0.0.0"
+  GRADIO_SERVER_PORT: "7860"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ragtrust-app
+  labels:
+    app: ragtrust
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ragtrust
+  template:
+    metadata:
+      labels:
+        app: ragtrust
+    spec:
+      containers:
+        - name: ragtrust-app
+          # Build and push docker/Dockerfile to a registry, then point this at that tag.
+          image: ragtrust-app:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 7860
+              name: http
+          envFrom:
+            - configMapRef:
+                name: ragtrust-config
+          env:
+            # Secrets (HF_TOKEN, etc.) belong in a Kubernetes Secret, not the ConfigMap.
+            - name: HF_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: ragtrust-secrets
+                  key: hf-token
+                  optional: true
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "2Gi"
+            limits:
+              cpu: "2"
+              memory: "6Gi"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3

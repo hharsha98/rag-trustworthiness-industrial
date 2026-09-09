@@ -1,0 +1,148 @@
+{
+  "nli_model": "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli",
+  "seed": 0,
+  "n_items": 900,
+  "n_total_available": 2700,
+  "n_dropped_nan": 0,
+  "class_balance": {
+    "sampled": {
+      "n": 900,
+      "n_hallucinated": 295,
+      "rate": 0.3277777777777778
+    },
+    "sampled_per_task_type": {
+      "Summary": {
+        "n": 300,
+        "n_hallucinated": 64,
+        "rate": 0.21333333333333335
+      },
+      "Data2txt": {
+        "n": 300,
+        "n_hallucinated": 191,
+        "rate": 0.6366666666666667
+      },
+      "QA": {
+        "n": 300,
+        "n_hallucinated": 40,
+        "rate": 0.13333333333333333
+      }
+    },
+    "full": {
+      "n": 2700,
+      "n_hallucinated": 943,
+      "rate": 0.34925925925925927
+    },
+    "full_per_task_type": {
+      "Summary": {
+        "n": 900,
+        "n_hallucinated": 204,
+        "rate": 0.22666666666666666
+      },
+      "Data2txt": {
+        "n": 900,
+        "n_hallucinated": 579,
+        "rate": 0.6433333333333333
+      },
+      "QA": {
+        "n": 900,
+        "n_hallucinated": 160,
+        "rate": 0.17777777777777778
+      }
+    }
+  },
+  "experiment_a": {
+    "pooled": {
+      "n": 900,
+      "n_hallucinated": 295,
+      "n_faithful": 605,
+      "roc_auc": {
+        "point": 0.6828547415604427,
+        "ci_lo": 0.6480287155063734,
+        "ci_hi": 0.7179933464070597
+      },
+      "pr_auc": {
+        "point": 0.4251683543258502,
+        "ci_lo": 0.3961686347861072,
+        "ci_hi": 0.4653322834051712
+      }
+    },
+    "per_task_type": {
+      "Summary": {
+        "n": 300,
+        "n_hallucinated": 64,
+        "n_faithful": 236,
+        "roc_auc": {
+          "point": 0.6299655720338984,
+          "ci_lo": 0.5572679422669492,
+          "ci_hi": 0.7000148967161017
+        },
+        "pr_auc": {
+          "point": 0.27201966294739843,
+          "ci_lo": 0.2330317914216954,
+          "ci_hi": 0.34572918920238765
+        }
+      },
+      "Data2txt": {
+        "n": 300,
+        "n_hallucinated": 191,
+        "n_faithful": 109,
+        "roc_auc": {
+          "point": 0.5602094240837696,
+          "ci_lo": 0.492144195206302,
+          "ci_hi": 0.6271710937124741
+        },
+        "pr_auc": {
+          "point": 0.6626849338404559,
+          "ci_lo": 0.6160897081869909,
+          "ci_hi": 0.7253695558557745
+        }
+      },
+      "QA": {
+        "n": 300,
+        "n_hallucinated": 40,
+        "n_faithful": 260,
+        "roc_auc": {
+          "point": 0.6025961538461538,
+          "ci_lo": 0.5125961538461539,
+          "ci_hi": 0.6923076923076923
+        },
+        "pr_auc": {
+          "point": 0.1687207855504621,
+          "ci_lo": 0.13983078293181697,
+          "ci_hi": 0.23655076581605602
+        }
+      }
+    }
+  },
+  "experiment_b": {
+    "n_single_label_items": 244,
+    "n_has_conflict": 110,
+    "n_has_baseless": 134,
+    "aucs": {
+      "kappa_vs_has_conflict": {
+        "point": 0.6002713704206242,
+        "ci_lo": 0.5275440976933514,
+        "ci_hi": 0.6709633649932157
+      },
+      "one_minus_F_vs_has_conflict": {
+        "point": 0.5158751696065129,
+        "ci_lo": 0.4416553595658073,
+        "ci_hi": 0.5891468792401628
+      }
+    },
+    "auc_identity_note": "has_baseless == not has_conflict on this subset, so AUC(stat, has_baseless) == 1 - AUC(stat, has_conflict) exactly; scoring the complement adds no information and is not reported.",
+    "paired_permutation_test": {
+      "statistic": "roc_auc",
+      "target": "has_conflict",
+      "stat_kappa": 0.6002713704206242,
+      "stat_one_minus_F": 0.5158751696065129,
+      "diff_kappa_minus_one_minus_F": 0.08439620081411126,
+      "p_value": 0.0770922907709229,
+      "n_permutations": 10000
+    },
+    "kappa_beats_chance": true,
+    "one_minus_F_beats_chance": false,
+    "gap_significant": false,
+    "verdict": "PARTIALLY SUPPORTED"
+  }
+}

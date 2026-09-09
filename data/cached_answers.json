@@ -1,0 +1,802 @@
+{
+  "What is the role of self-supervised learning in robotics?": {
+    "answer": "Self-supervised learning reduces a robot's dependence on manual annotation by generating its own supervisory signal from data already present [1]. It allows robots to scale their learning with large amounts of unlabelled experience, often used for pre-training networks on unlabelled datasets [1]. This method is significant in robotics because it addresses the challenge of labelling enormous quantities of sensor data generated during operation, which is typically the dominant cost in projects [2].\n\n[1] The Role of Self-Supervised Learning in Robotics  \n[2] Machine Learning Paradigms in Robotics",
+    "category": "pdf",
+    "abstained": false,
+    "top_score": 0.8336304426193237,
+    "passages": [
+      {
+        "id": 1,
+        "page": 2,
+        "text": "The Role of Self-Supervised Learning in Robotics Self-supervised learning reduces a robot's dependence on manual annotation by generating its own supervisory signal from the structure already present in the data. A common recipe is to hide part of an observation and train the network to reconstruct it, using the withheld part as the label. Because the label comes from the data itself, the method scales to as much unlabelled experience as the robot can collect. In practice this is used for large-scale pre-training. A network is first trained on a large unlabelled dataset with a self-supervised objective, learning general visual or dynamical",
+        "score": 0.8336304426193237
+      },
+      {
+        "id": 2,
+        "page": 1,
+        "text": "data itself, for example by clustering similar sensor readings. In reinforcement learning the model receives neither labels nor structure but a scalar reward signal indicating how good an action was, and it improves by maximising cumulative reward. Self-supervised learning sits between these. It is a variant of unsupervised learning in which the training target is derived automatically from the raw data rather than supplied by an annotator. This matters in robotics because robots generate enormous quantities of unlabelled sensor data during ordinary operation, and labelling that data by hand is the dominant cost in most projects.",
+        "score": 0.5959948301315308
+      },
+      {
+        "id": 3,
+        "page": 1,
+        "text": "Machine Learning Paradigms in Robotics Robot learning is usually organised into three paradigms. In supervised learning a model is trained on input-output pairs that a human has labelled, which is accurate but expensive to scale. In unsupervised learning the model receives no labels and must find structure in the data itself, for example by clustering similar sensor readings. In reinforcement learning the model receives neither labels nor structure but a scalar reward signal indicating how good an action was, and it improves by maximising cumulative reward. Self-supervised learning sits between these. It is a variant of unsupervised learning in",
+        "score": 0.5894920229911804
+      },
+      {
+        "id": 4,
+        "page": 11,
+        "text": "or payload changes. In human-robot interaction, learning supports gesture and speech recognition, intent prediction and safe trajectory adjustment around people. In industrial operation it supports predictive maintenance, anomaly detection in process data, and visual quality inspection on production lines. The common thread is that learning is applied where an explicit model is unavailable, too expensive to build, or too brittle to maintain \u2014 and that classical methods remain preferable wherever a reliable model does exist.",
+        "score": 0.5098379254341125
+      },
+      {
+        "id": 5,
+        "page": 11,
+        "text": "Applications of Machine Learning in Robotics Machine learning appears across the robotic stack. In perception it supports object detection and classification, semantic and instance segmentation, pose estimation, depth prediction and visual place recognition. In state estimation it complements or replaces hand-tuned filters for localisation and mapping. In planning and control, learned models are used for motion planning in cluttered environments, for grasp synthesis where analytic approaches struggle with unfamiliar object geometry, and for adaptive control that compensates for unmodelled dynamics such as friction",
+        "score": 0.4794458746910095
+      }
+    ],
+    "model": "phi4:latest",
+    "generated_utc": "2026-09-07T18:17:50Z"
+  },
+  "How does deep reinforcement learning work in robotics?": {
+    "answer": "Deep reinforcement learning in robotics combines the Markov Decision Process (MDP) formulation with neural networks used as function approximators. Instead of storing a value for every state, which is impractical for continuous or image-based state spaces, a network maps states to values or directly to actions [1]. Training proceeds by interaction: the agent observes a state, selects an action, receives a reward and a new state, and uses that experience to update its parameters. Value-based methods learn to estimate expected return and act greedily with respect to it; policy-gradient methods adjust the policy parameters directly in the direction that increases expected return [1].",
+    "category": "pdf",
+    "abstained": false,
+    "top_score": 0.7441689372062683,
+    "passages": [
+      {
+        "id": 1,
+        "page": 8,
+        "text": "Deep Reinforcement Learning in Robotics Deep reinforcement learning combines the MDP formulation with neural networks used as function approximators. Instead of storing a value for every state, which is impossible for continuous or image-based state spaces, a network maps states to values or directly to actions. Training proceeds by interaction. The agent observes a state, selects an action, receives a reward and a new state, and uses that experience to update its parameters. Value-based methods learn to estimate expected return and act greedily with respect to it; policy-gradient methods adjust the policy parameters directly in the direction that increases expected return;",
+        "score": 0.7441689372062683
+      },
+      {
+        "id": 2,
+        "page": 1,
+        "text": "data itself, for example by clustering similar sensor readings. In reinforcement learning the model receives neither labels nor structure but a scalar reward signal indicating how good an action was, and it improves by maximising cumulative reward. Self-supervised learning sits between these. It is a variant of unsupervised learning in which the training target is derived automatically from the raw data rather than supplied by an annotator. This matters in robotics because robots generate enormous quantities of unlabelled sensor data during ordinary operation, and labelling that data by hand is the dominant cost in most projects.",
+        "score": 0.5552139282226562
+      },
+      {
+        "id": 3,
+        "page": 1,
+        "text": "Machine Learning Paradigms in Robotics Robot learning is usually organised into three paradigms. In supervised learning a model is trained on input-output pairs that a human has labelled, which is accurate but expensive to scale. In unsupervised learning the model receives no labels and must find structure in the data itself, for example by clustering similar sensor readings. In reinforcement learning the model receives neither labels nor structure but a scalar reward signal indicating how good an action was, and it improves by maximising cumulative reward. Self-supervised learning sits between these. It is a variant of unsupervised learning in",
+        "score": 0.5517293214797974
+      },
+      {
+        "id": 4,
+        "page": 2,
+        "text": "The Role of Self-Supervised Learning in Robotics Self-supervised learning reduces a robot's dependence on manual annotation by generating its own supervisory signal from the structure already present in the data. A common recipe is to hide part of an observation and train the network to reconstruct it, using the withheld part as the label. Because the label comes from the data itself, the method scales to as much unlabelled experience as the robot can collect. In practice this is used for large-scale pre-training. A network is first trained on a large unlabelled dataset with a self-supervised objective, learning general visual or dynamical",
+        "score": 0.48361340165138245
+      },
+      {
+        "id": 5,
+        "page": 4,
+        "text": "Artificial Neural Networks and Their Advantages in Robotics An artificial neural network is a composition of parameterised layers, each applying a linear transformation followed by a non-linear activation, trained end to end by gradient descent on a loss function. Three properties make them well suited to robotics. First, they learn features rather than requiring an engineer to design them: a network trained on camera input discovers useful edge and texture detectors without anyone specifying what an edge is. Second, they handle high-dimensional, noisy, heterogeneous input \u2014 camera frames, lidar returns, joint encoders \u2014",
+        "score": 0.45953965187072754
+      }
+    ],
+    "model": "phi4:latest",
+    "generated_utc": "2026-09-07T18:18:00Z"
+  },
+  "What are the advantages of using artificial neural networks in robotics?": {
+    "answer": "Artificial neural networks have several advantages in robotics. First, they learn features automatically rather than requiring an engineer to design them, allowing a network trained on camera input to discover useful edge and texture detectors without explicit instructions [1][2]. Second, they can handle high-dimensional, noisy, heterogeneous inputs such as camera frames, lidar returns, and joint encoders within a single differentiable model [2]. Third, once trained, inference involves a fixed sequence of matrix operations with predictable latency, which is suitable for real-time control loops [2].",
+    "category": "pdf",
+    "abstained": false,
+    "top_score": 0.8140631914138794,
+    "passages": [
+      {
+        "id": 1,
+        "page": 4,
+        "text": "Artificial Neural Networks and Their Advantages in Robotics An artificial neural network is a composition of parameterised layers, each applying a linear transformation followed by a non-linear activation, trained end to end by gradient descent on a loss function. Three properties make them well suited to robotics. First, they learn features rather than requiring an engineer to design them: a network trained on camera input discovers useful edge and texture detectors without anyone specifying what an edge is. Second, they handle high-dimensional, noisy, heterogeneous input \u2014 camera frames, lidar returns, joint encoders \u2014",
+        "score": 0.8140631914138794
+      },
+      {
+        "id": 2,
+        "page": 4,
+        "text": "Three properties make them well suited to robotics. First, they learn features rather than requiring an engineer to design them: a network trained on camera input discovers useful edge and texture detectors without anyone specifying what an edge is. Second, they handle high-dimensional, noisy, heterogeneous input \u2014 camera frames, lidar returns, joint encoders \u2014 within a single differentiable model. Third, once trained, inference is a fixed sequence of matrix operations with predictable latency, which suits real-time control loops. The costs are equally real. Networks need large quantities of representative training data; they generalise poorly to conditions outside their training distribution; and their decisions",
+        "score": 0.5601031184196472
+      },
+      {
+        "id": 3,
+        "page": 2,
+        "text": "The Role of Self-Supervised Learning in Robotics Self-supervised learning reduces a robot's dependence on manual annotation by generating its own supervisory signal from the structure already present in the data. A common recipe is to hide part of an observation and train the network to reconstruct it, using the withheld part as the label. Because the label comes from the data itself, the method scales to as much unlabelled experience as the robot can collect. In practice this is used for large-scale pre-training. A network is first trained on a large unlabelled dataset with a self-supervised objective, learning general visual or dynamical",
+        "score": 0.4956755042076111
+      },
+      {
+        "id": 4,
+        "page": 11,
+        "text": "or payload changes. In human-robot interaction, learning supports gesture and speech recognition, intent prediction and safe trajectory adjustment around people. In industrial operation it supports predictive maintenance, anomaly detection in process data, and visual quality inspection on production lines. The common thread is that learning is applied where an explicit model is unavailable, too expensive to build, or too brittle to maintain \u2014 and that classical methods remain preferable wherever a reliable model does exist.",
+        "score": 0.4928309917449951
+      },
+      {
+        "id": 5,
+        "page": 11,
+        "text": "Applications of Machine Learning in Robotics Machine learning appears across the robotic stack. In perception it supports object detection and classification, semantic and instance segmentation, pose estimation, depth prediction and visual place recognition. In state estimation it complements or replaces hand-tuned filters for localisation and mapping. In planning and control, learned models are used for motion planning in cluttered environments, for grasp synthesis where analytic approaches struggle with unfamiliar object geometry, and for adaptive control that compensates for unmodelled dynamics such as friction",
+        "score": 0.4791296720504761
+      }
+    ],
+    "model": "phi4:latest",
+    "generated_utc": "2026-09-07T18:18:09Z"
+  },
+  "How can sensor fusion improve robot performance?": {
+    "answer": "Sensor fusion improves robot performance by combining measurements from multiple sensors, which results in a more accurate and robust estimate than any individual sensor could provide [1]. This combination allows for averaging independent noisy measurements to reduce variance, covering each other's blind spots so the system degrades gracefully instead of failing outright when one sensor is compromised, and interleaving different sampling rates to propagate estimates between slower absolute fixes [1]. Additionally, fusion can be performed at various levels\u2014early, intermediate, or late\u2014and relies on accurate extrinsic calibration and precise time synchronization for optimal performance [3].\n\n[References: 1, 3]",
+    "category": "pdf",
+    "abstained": false,
+    "top_score": 0.6271928548812866,
+    "passages": [
+      {
+        "id": 1,
+        "page": 10,
+        "text": "Sensor Fusion Sensor fusion combines measurements from several sensors into a single estimate that is more accurate and more robust than any individual sensor could provide. The motivation is that sensors fail in different, largely independent ways: cameras are dense and semantically rich but degrade in darkness; lidar gives precise geometry but is sparse and struggles with rain and reflective surfaces; inertial units are fast and never occluded but drift over time; wheel odometry is cheap but wrong whenever wheels slip. Combining them improves performance in several ways. Averaging independent noisy measurements",
+        "score": 0.6271928548812866
+      },
+      {
+        "id": 2,
+        "page": 10,
+        "text": "reduces variance. Complementary modalities cover each other's blind spots, so the system degrades gracefully instead of failing outright when one sensor is compromised. Different sampling rates can be interleaved, with a fast inertial signal propagating the estimate between slower absolute fixes. Fusion is performed at different levels. Early fusion combines raw measurements before any interpretation; late fusion combines the independent outputs of separate per-sensor pipelines; intermediate fusion merges learned feature representations. Classical probabilistic approaches such as the Kalman filter and its non-linear variants remain standard",
+        "score": 0.5448538064956665
+      },
+      {
+        "id": 3,
+        "page": 10,
+        "text": "Fusion is performed at different levels. Early fusion combines raw measurements before any interpretation; late fusion combines the independent outputs of separate per-sensor pipelines; intermediate fusion merges learned feature representations. Classical probabilistic approaches such as the Kalman filter and its non-linear variants remain standard where the system dynamics are well modelled, while learned fusion is increasingly used where they are not. Correct fusion depends critically on accurate extrinsic calibration between sensors and on precise time synchronisation, since a fused estimate built from misaligned or mistimed inputs can be worse than any single sensor alone.",
+        "score": 0.4552261233329773
+      },
+      {
+        "id": 4,
+        "page": 2,
+        "text": "features, and is then fine-tuned on a much smaller labelled dataset for the specific task at hand, such as object classification or grasp-point prediction. The result is that a robot reaches a target accuracy with far fewer human-labelled examples than supervised training alone would require. A second use is plausibility checking. A model trained to predict how an image sequence should continue can flag sequences that violate its expectations, which is useful for detecting sensor faults or anomalous situations without anyone having labelled those failures in advance.",
+        "score": 0.3372112512588501
+      },
+      {
+        "id": 5,
+        "page": 4,
+        "text": "Three properties make them well suited to robotics. First, they learn features rather than requiring an engineer to design them: a network trained on camera input discovers useful edge and texture detectors without anyone specifying what an edge is. Second, they handle high-dimensional, noisy, heterogeneous input \u2014 camera frames, lidar returns, joint encoders \u2014 within a single differentiable model. Third, once trained, inference is a fixed sequence of matrix operations with predictable latency, which suits real-time control loops. The costs are equally real. Networks need large quantities of representative training data; they generalise poorly to conditions outside their training distribution; and their decisions",
+        "score": 0.33395612239837646
+      }
+    ],
+    "model": "phi4:latest",
+    "generated_utc": "2026-09-07T18:18:18Z"
+  },
+  "What are the applications of machine learning in robotics?": {
+    "answer": "Machine learning is applied across various aspects of robotics including perception (object detection and classification), state estimation (localisation and mapping), planning and control (motion planning, grasp synthesis, adaptive control), human-robot interaction (gesture and speech recognition, intent prediction, safe trajectory adjustment), and industrial operation (predictive maintenance, anomaly detection, visual quality inspection) [1]. The common thread is that learning is applied where an explicit model is unavailable, too expensive to build, or too brittle to maintain \u2014 and classical methods remain preferable wherever a reliable model does exist [2].",
+    "category": "pdf",
+    "abstained": false,
+    "top_score": 0.7181065678596497,
+    "passages": [
+      {
+        "id": 1,
+        "page": 11,
+        "text": "Applications of Machine Learning in Robotics Machine learning appears across the robotic stack. In perception it supports object detection and classification, semantic and instance segmentation, pose estimation, depth prediction and visual place recognition. In state estimation it complements or replaces hand-tuned filters for localisation and mapping. In planning and control, learned models are used for motion planning in cluttered environments, for grasp synthesis where analytic approaches struggle with unfamiliar object geometry, and for adaptive control that compensates for unmodelled dynamics such as friction",
+        "score": 0.7181065678596497
+      },
+      {
+        "id": 2,
+        "page": 11,
+        "text": "or payload changes. In human-robot interaction, learning supports gesture and speech recognition, intent prediction and safe trajectory adjustment around people. In industrial operation it supports predictive maintenance, anomaly detection in process data, and visual quality inspection on production lines. The common thread is that learning is applied where an explicit model is unavailable, too expensive to build, or too brittle to maintain \u2014 and that classical methods remain preferable wherever a reliable model does exist.",
+        "score": 0.5085299611091614
+      },
+      {
+        "id": 3,
+        "page": 1,
+        "text": "Machine Learning Paradigms in Robotics Robot learning is usually organised into three paradigms. In supervised learning a model is trained on input-output pairs that a human has labelled, which is accurate but expensive to scale. In unsupervised learning the model receives no labels and must find structure in the data itself, for example by clustering similar sensor readings. In reinforcement learning the model receives neither labels nor structure but a scalar reward signal indicating how good an action was, and it improves by maximising cumulative reward. Self-supervised learning sits between these. It is a variant of unsupervised learning in",
+        "score": 0.5033189058303833
+      },
+      {
+        "id": 4,
+        "page": 4,
+        "text": "Artificial Neural Networks and Their Advantages in Robotics An artificial neural network is a composition of parameterised layers, each applying a linear transformation followed by a non-linear activation, trained end to end by gradient descent on a loss function. Three properties make them well suited to robotics. First, they learn features rather than requiring an engineer to design them: a network trained on camera input discovers useful edge and texture detectors without anyone specifying what an edge is. Second, they handle high-dimensional, noisy, heterogeneous input \u2014 camera frames, lidar returns, joint encoders \u2014",
+        "score": 0.4682644009590149
+      },
+      {
+        "id": 5,
+        "page": 2,
+        "text": "features, and is then fine-tuned on a much smaller labelled dataset for the specific task at hand, such as object classification or grasp-point prediction. The result is that a robot reaches a target accuracy with far fewer human-labelled examples than supervised training alone would require. A second use is plausibility checking. A model trained to predict how an image sequence should continue can flag sequences that violate its expectations, which is useful for detecting sensor faults or anomalous situations without anyone having labelled those failures in advance.",
+        "score": 0.45396608114242554
+      }
+    ],
+    "model": "phi4:latest",
+    "generated_utc": "2026-09-07T18:18:27Z"
+  },
+  "Explain the concept of self-supervised depth estimation in robotics.": {
+    "answer": "Self-supervised depth estimation is a task where a network predicts a depth map from stereo pairs or consecutive frames without human-labeled data. The predicted depth, combined with known or estimated camera motion, warps one image to match another's viewpoint, and the difference between this warped image and the actual image forms the training loss [1]. This method leverages geometry as an inherent supervisory signal, reducing reliance on manual annotation in robotics applications [2].\n\n[1] Self-Supervised Depth Estimation  \n[2] The Role of Self-Supervised Learning in Robotics",
+    "category": "pdf",
+    "abstained": false,
+    "top_score": 0.6839605569839478,
+    "passages": [
+      {
+        "id": 1,
+        "page": 3,
+        "text": "Self-Supervised Depth Estimation Depth estimation is a canonical self-supervised task because geometry supplies the label for free. Given a stereo pair, or two consecutive frames from a moving monocular camera, a network predicts a depth map. That predicted depth, combined with the known or estimated camera motion, is used to warp one image into the viewpoint of the other. The difference between the warped image and the real one \u2014 the photometric reprojection error \u2014 becomes the training loss. No human ever labels a depth value. The supervisory signal comes entirely from the constraint",
+        "score": 0.6839605569839478
+      },
+      {
+        "id": 2,
+        "page": 2,
+        "text": "The Role of Self-Supervised Learning in Robotics Self-supervised learning reduces a robot's dependence on manual annotation by generating its own supervisory signal from the structure already present in the data. A common recipe is to hide part of an observation and train the network to reconstruct it, using the withheld part as the label. Because the label comes from the data itself, the method scales to as much unlabelled experience as the robot can collect. In practice this is used for large-scale pre-training. A network is first trained on a large unlabelled dataset with a self-supervised objective, learning general visual or dynamical",
+        "score": 0.667847752571106
+      },
+      {
+        "id": 3,
+        "page": 1,
+        "text": "data itself, for example by clustering similar sensor readings. In reinforcement learning the model receives neither labels nor structure but a scalar reward signal indicating how good an action was, and it improves by maximising cumulative reward. Self-supervised learning sits between these. It is a variant of unsupervised learning in which the training target is derived automatically from the raw data rather than supplied by an annotator. This matters in robotics because robots generate enormous quantities of unlabelled sensor data during ordinary operation, and labelling that data by hand is the dominant cost in most projects.",
+        "score": 0.4532107412815094
+      },
+      {
+        "id": 4,
+        "page": 1,
+        "text": "Machine Learning Paradigms in Robotics Robot learning is usually organised into three paradigms. In supervised learning a model is trained on input-output pairs that a human has labelled, which is accurate but expensive to scale. In unsupervised learning the model receives no labels and must find structure in the data itself, for example by clustering similar sensor readings. In reinforcement learning the model receives neither labels nor structure but a scalar reward signal indicating how good an action was, and it improves by maximising cumulative reward. Self-supervised learning sits between these. It is a variant of unsupervised learning in",
+        "score": 0.45038455724716187
+      },
+      {
+        "id": 5,
+        "page": 11,
+        "text": "Applications of Machine Learning in Robotics Machine learning appears across the robotic stack. In perception it supports object detection and classification, semantic and instance segmentation, pose estimation, depth prediction and visual place recognition. In state estimation it complements or replaces hand-tuned filters for localisation and mapping. In planning and control, learned models are used for motion planning in cluttered environments, for grasp synthesis where analytic approaches struggle with unfamiliar object geometry, and for adaptive control that compensates for unmodelled dynamics such as friction",
+        "score": 0.42667117714881897
+      }
+    ],
+    "model": "phi4:latest",
+    "generated_utc": "2026-09-07T18:18:36Z"
+  },
+  "What is the function of convolutional layers in CNNs for vision?": {
+    "answer": "Convolutional layers apply a small learned filter across the whole input image to compute a weighted sum of each local neighborhood, producing a feature map. This process results in translation-equivariance, meaning a detected feature in one part of the image is identified identically elsewhere [1]. Early convolutional layers learn simple structures like oriented edges and color transitions, while deeper layers combine these into more abstract patterns such as textures and object parts [2].",
+    "category": "pdf",
+    "abstained": false,
+    "top_score": 0.6679425835609436,
+    "passages": [
+      {
+        "id": 1,
+        "page": 5,
+        "text": "Convolutional Layers and Their Function in Vision A convolutional layer applies a small learned filter across the whole input image, computing a weighted sum of each local neighbourhood to produce a feature map. Because the same filter is reused at every position, the layer has far fewer parameters than a fully connected layer over the same input, and what it learns is translation-equivariant: a feature detected in one part of the image is detected identically elsewhere. Early convolutional layers learn simple, local structure \u2014 oriented edges, colour transitions, small blobs. Deeper layers, whose receptive fields cover more of the original image, combine",
+        "score": 0.6679425835609436
+      },
+      {
+        "id": 2,
+        "page": 5,
+        "text": "over the same input, and what it learns is translation-equivariant: a feature detected in one part of the image is detected identically elsewhere. Early convolutional layers learn simple, local structure \u2014 oriented edges, colour transitions, small blobs. Deeper layers, whose receptive fields cover more of the original image, combine these into progressively more abstract patterns such as textures, object parts and eventually whole objects. This hierarchy is learned, not designed. Stacking many such layers with small filters is the basis of architectures like VGG, in which repeated blocks of convolutions are interleaved with downsampling stages.",
+        "score": 0.5112465620040894
+      },
+      {
+        "id": 3,
+        "page": 6,
+        "text": "Max-Pooling Layers and Their Purpose A max-pooling layer downsamples a feature map by dividing it into small non-overlapping windows and keeping only the maximum activation within each. A 2x2 pooling window halves the width and height, reducing the number of values by a factor of four. It serves three purposes. It reduces the spatial resolution and therefore the computation and memory required by subsequent layers. It enlarges the effective receptive field, so later layers see a wider area of the original image for the same filter size. And it introduces a degree of local translation invariance: shifting a feature by one pixel within a pooling",
+        "score": 0.4153139293193817
+      },
+      {
+        "id": 4,
+        "page": 6,
+        "text": "It serves three purposes. It reduces the spatial resolution and therefore the computation and memory required by subsequent layers. It enlarges the effective receptive field, so later layers see a wider area of the original image for the same filter size. And it introduces a degree of local translation invariance: shifting a feature by one pixel within a pooling window leaves the output unchanged, so the network becomes less sensitive to the exact position of a pattern. Max-pooling has no learnable parameters. It discards information deliberately, keeping the strongest response in each region and dropping the rest.",
+        "score": 0.35690975189208984
+      },
+      {
+        "id": 5,
+        "page": 4,
+        "text": "Artificial Neural Networks and Their Advantages in Robotics An artificial neural network is a composition of parameterised layers, each applying a linear transformation followed by a non-linear activation, trained end to end by gradient descent on a loss function. Three properties make them well suited to robotics. First, they learn features rather than requiring an engineer to design them: a network trained on camera input discovers useful edge and texture detectors without anyone specifying what an edge is. Second, they handle high-dimensional, noisy, heterogeneous input \u2014 camera frames, lidar returns, joint encoders \u2014",
+        "score": 0.22297897934913635
+      }
+    ],
+    "model": "phi4:latest",
+    "generated_utc": "2026-09-07T18:18:44Z"
+  },
+  "Describe the Markov Decision Process in reinforcement learning.": {
+    "answer": "The Markov Decision Process (MDP) in reinforcement learning is defined by a set of states, actions, a transition function that gives the probability of reaching a next state after taking an action in a current state, a reward function, and a discount factor between zero and one that determines how strongly future rewards are preferred to immediate rewards. The defining assumption is the Markov property: the next state depends only on the current state and the chosen action, not on the history that led there [1].",
+    "category": "pdf",
+    "abstained": false,
+    "top_score": 0.838520348072052,
+    "passages": [
+      {
+        "id": 1,
+        "page": 7,
+        "text": "The Markov Decision Process A Markov Decision Process is the formal model underlying reinforcement learning. It is defined by a set of states, a set of actions, a transition function giving the probability of reaching a next state after taking an action in a current state, a reward function, and a discount factor between zero and one that determines how strongly future reward is preferred to immediate reward. The defining assumption is the Markov property: the next state depends only on the current state and the chosen action, not on the history that led there. The current state is therefore",
+        "score": 0.838520348072052
+      },
+      {
+        "id": 2,
+        "page": 1,
+        "text": "data itself, for example by clustering similar sensor readings. In reinforcement learning the model receives neither labels nor structure but a scalar reward signal indicating how good an action was, and it improves by maximising cumulative reward. Self-supervised learning sits between these. It is a variant of unsupervised learning in which the training target is derived automatically from the raw data rather than supplied by an annotator. This matters in robotics because robots generate enormous quantities of unlabelled sensor data during ordinary operation, and labelling that data by hand is the dominant cost in most projects.",
+        "score": 0.3664805293083191
+      },
+      {
+        "id": 3,
+        "page": 8,
+        "text": "Training proceeds by interaction. The agent observes a state, selects an action, receives a reward and a new state, and uses that experience to update its parameters. Value-based methods learn to estimate expected return and act greedily with respect to it; policy-gradient methods adjust the policy parameters directly in the direction that increases expected return; actor-critic methods combine both, using a learned value estimate to reduce the variance of the policy update. Applied to robots, the approach faces distinctive difficulties. Real interaction is slow and wears out hardware, so training usually happens in simulation and must then cross the",
+        "score": 0.35890743136405945
+      },
+      {
+        "id": 4,
+        "page": 8,
+        "text": "Deep Reinforcement Learning in Robotics Deep reinforcement learning combines the MDP formulation with neural networks used as function approximators. Instead of storing a value for every state, which is impossible for continuous or image-based state spaces, a network maps states to values or directly to actions. Training proceeds by interaction. The agent observes a state, selects an action, receives a reward and a new state, and uses that experience to update its parameters. Value-based methods learn to estimate expected return and act greedily with respect to it; policy-gradient methods adjust the policy parameters directly in the direction that increases expected return;",
+        "score": 0.356573224067688
+      },
+      {
+        "id": 5,
+        "page": 1,
+        "text": "Machine Learning Paradigms in Robotics Robot learning is usually organised into three paradigms. In supervised learning a model is trained on input-output pairs that a human has labelled, which is accurate but expensive to scale. In unsupervised learning the model receives no labels and must find structure in the data itself, for example by clustering similar sensor readings. In reinforcement learning the model receives neither labels nor structure but a scalar reward signal indicating how good an action was, and it improves by maximising cumulative reward. Self-supervised learning sits between these. It is a variant of unsupervised learning in",
+        "score": 0.3347620368003845
+      }
+    ],
+    "model": "phi4:latest",
+    "generated_utc": "2026-09-07T18:18:52Z"
+  },
+  "How does an LSTM cell retain long-term dependencies?": {
+    "answer": "An LSTM cell retains long-term dependencies through its explicit memory cell and three multiplicative gates: the forget gate, input gate, and output gate. The mechanism that preserves these dependencies is the cell state's additive update path, where the cell state is modified by addition rather than being repeatedly multiplied by a weight matrix [2]. This allows gradients to flow backwards across many time steps almost undiminished when the forget gate stays near one, enabling the network to link events with consequences occurring much later in the sequence [3].",
+    "category": "pdf",
+    "abstained": false,
+    "top_score": 0.6085383296012878,
+    "passages": [
+      {
+        "id": 1,
+        "page": 9,
+        "text": "Recurrent Networks and LSTM Cells A plain recurrent network processes a sequence one step at a time, carrying a hidden state forward. Training it by backpropagation through time repeatedly multiplies gradients by the same recurrent weights, so gradients tend to shrink toward zero or grow without bound over long sequences. The vanishing case is what prevents such networks from learning long-range dependencies. The Long Short-Term Memory cell addresses this with an explicit memory cell and three multiplicative gates. The forget gate decides what proportion of the existing cell state to",
+        "score": 0.6085383296012878
+      },
+      {
+        "id": 2,
+        "page": 9,
+        "text": "long sequences. The vanishing case is what prevents such networks from learning long-range dependencies. The Long Short-Term Memory cell addresses this with an explicit memory cell and three multiplicative gates. The forget gate decides what proportion of the existing cell state to retain. The input gate decides how much of the newly computed candidate value to write. The output gate decides how much of the cell state is exposed as the hidden state at that step. The mechanism that preserves long-term dependencies is the cell state's additive update path. Rather than being repeatedly multiplied by a weight matrix, the cell state is modified by",
+        "score": 0.46508291363716125
+      },
+      {
+        "id": 3,
+        "page": 9,
+        "text": "retain. The input gate decides how much of the newly computed candidate value to write. The output gate decides how much of the cell state is exposed as the hidden state at that step. The mechanism that preserves long-term dependencies is the cell state's additive update path. Rather than being repeatedly multiplied by a weight matrix, the cell state is modified by addition, with the forget gate controlling decay. When the forget gate stays near one, the gradient flows backwards across many time steps almost undiminished, so the network can link an event to a consequence that occurs much later in the sequence. In robotics this supports tasks where the correct action depends on something observed long before, such as remembering",
+        "score": 0.41846197843551636
+      },
+      {
+        "id": 4,
+        "page": 6,
+        "text": "It serves three purposes. It reduces the spatial resolution and therefore the computation and memory required by subsequent layers. It enlarges the effective receptive field, so later layers see a wider area of the original image for the same filter size. And it introduces a degree of local translation invariance: shifting a feature by one pixel within a pooling window leaves the output unchanged, so the network becomes less sensitive to the exact position of a pattern. Max-pooling has no learnable parameters. It discards information deliberately, keeping the strongest response in each region and dropping the rest.",
+        "score": 0.22597414255142212
+      },
+      {
+        "id": 5,
+        "page": 9,
+        "text": "addition, with the forget gate controlling decay. When the forget gate stays near one, the gradient flows backwards across many time steps almost undiminished, so the network can link an event to a consequence that occurs much later in the sequence. In robotics this supports tasks where the correct action depends on something observed long before, such as remembering which way a corridor turned.",
+        "score": 0.17145010828971863
+      }
+    ],
+    "model": "phi4:latest",
+    "generated_utc": "2026-09-07T18:19:01Z"
+  },
+  "What is the purpose of max-pooling layers in CNNs?": {
+    "answer": "Max-pooling layers serve three main purposes. First, they reduce the spatial resolution and therefore the computation and memory required by subsequent layers [1]. Second, they enlarge the effective receptive field, allowing later layers to see a wider area of the original image for the same filter size [2]. Third, they introduce a degree of local translation invariance, making the network less sensitive to the exact position of a pattern within a pooling window [2].",
+    "category": "pdf",
+    "abstained": false,
+    "top_score": 0.6817964315414429,
+    "passages": [
+      {
+        "id": 1,
+        "page": 6,
+        "text": "Max-Pooling Layers and Their Purpose A max-pooling layer downsamples a feature map by dividing it into small non-overlapping windows and keeping only the maximum activation within each. A 2x2 pooling window halves the width and height, reducing the number of values by a factor of four. It serves three purposes. It reduces the spatial resolution and therefore the computation and memory required by subsequent layers. It enlarges the effective receptive field, so later layers see a wider area of the original image for the same filter size. And it introduces a degree of local translation invariance: shifting a feature by one pixel within a pooling",
+        "score": 0.6817964315414429
+      },
+      {
+        "id": 2,
+        "page": 6,
+        "text": "It serves three purposes. It reduces the spatial resolution and therefore the computation and memory required by subsequent layers. It enlarges the effective receptive field, so later layers see a wider area of the original image for the same filter size. And it introduces a degree of local translation invariance: shifting a feature by one pixel within a pooling window leaves the output unchanged, so the network becomes less sensitive to the exact position of a pattern. Max-pooling has no learnable parameters. It discards information deliberately, keeping the strongest response in each region and dropping the rest.",
+        "score": 0.549335241317749
+      },
+      {
+        "id": 3,
+        "page": 5,
+        "text": "Convolutional Layers and Their Function in Vision A convolutional layer applies a small learned filter across the whole input image, computing a weighted sum of each local neighbourhood to produce a feature map. Because the same filter is reused at every position, the layer has far fewer parameters than a fully connected layer over the same input, and what it learns is translation-equivariant: a feature detected in one part of the image is detected identically elsewhere. Early convolutional layers learn simple, local structure \u2014 oriented edges, colour transitions, small blobs. Deeper layers, whose receptive fields cover more of the original image, combine",
+        "score": 0.35324886441230774
+      },
+      {
+        "id": 4,
+        "page": 5,
+        "text": "over the same input, and what it learns is translation-equivariant: a feature detected in one part of the image is detected identically elsewhere. Early convolutional layers learn simple, local structure \u2014 oriented edges, colour transitions, small blobs. Deeper layers, whose receptive fields cover more of the original image, combine these into progressively more abstract patterns such as textures, object parts and eventually whole objects. This hierarchy is learned, not designed. Stacking many such layers with small filters is the basis of architectures like VGG, in which repeated blocks of convolutions are interleaved with downsampling stages.",
+        "score": 0.3361440896987915
+      },
+      {
+        "id": 5,
+        "page": 8,
+        "text": "Deep Reinforcement Learning in Robotics Deep reinforcement learning combines the MDP formulation with neural networks used as function approximators. Instead of storing a value for every state, which is impossible for continuous or image-based state spaces, a network maps states to values or directly to actions. Training proceeds by interaction. The agent observes a state, selects an action, receives a reward and a new state, and uses that experience to update its parameters. Value-based methods learn to estimate expected return and act greedily with respect to it; policy-gradient methods adjust the policy parameters directly in the direction that increases expected return;",
+        "score": 0.31102508306503296
+      }
+    ],
+    "model": "phi4:latest",
+    "generated_utc": "2026-09-07T18:19:10Z"
+  },
+  "What is the capital of France?": {
+    "answer": "NOT_IN_CORPUS",
+    "category": "general",
+    "abstained": true,
+    "top_score": 0.017963137477636337,
+    "passages": [
+      {
+        "id": 1,
+        "page": 7,
+        "text": "The Markov Decision Process A Markov Decision Process is the formal model underlying reinforcement learning. It is defined by a set of states, a set of actions, a transition function giving the probability of reaching a next state after taking an action in a current state, a reward function, and a discount factor between zero and one that determines how strongly future reward is preferred to immediate reward. The defining assumption is the Markov property: the next state depends only on the current state and the chosen action, not on the history that led there. The current state is therefore",
+        "score": 0.017963137477636337
+      },
+      {
+        "id": 2,
+        "page": 11,
+        "text": "or payload changes. In human-robot interaction, learning supports gesture and speech recognition, intent prediction and safe trajectory adjustment around people. In industrial operation it supports predictive maintenance, anomaly detection in process data, and visual quality inspection on production lines. The common thread is that learning is applied where an explicit model is unavailable, too expensive to build, or too brittle to maintain \u2014 and that classical methods remain preferable wherever a reliable model does exist.",
+        "score": 0.008950971998274326
+      },
+      {
+        "id": 3,
+        "page": 1,
+        "text": "data itself, for example by clustering similar sensor readings. In reinforcement learning the model receives neither labels nor structure but a scalar reward signal indicating how good an action was, and it improves by maximising cumulative reward. Self-supervised learning sits between these. It is a variant of unsupervised learning in which the training target is derived automatically from the raw data rather than supplied by an annotator. This matters in robotics because robots generate enormous quantities of unlabelled sensor data during ordinary operation, and labelling that data by hand is the dominant cost in most projects.",
+        "score": 0.006712805479764938
+      },
+      {
+        "id": 4,
+        "page": 10,
+        "text": "but degrade in darkness; lidar gives precise geometry but is sparse and struggles with rain and reflective surfaces; inertial units are fast and never occluded but drift over time; wheel odometry is cheap but wrong whenever wheels slip. Combining them improves performance in several ways. Averaging independent noisy measurements reduces variance. Complementary modalities cover each other's blind spots, so the system degrades gracefully instead of failing outright when one sensor is compromised. Different sampling rates can be interleaved, with a fast inertial signal propagating the estimate between slower absolute fixes.",
+        "score": 0.00657409243285656
+      },
+      {
+        "id": 5,
+        "page": 8,
+        "text": "actor-critic methods combine both, using a learned value estimate to reduce the variance of the policy update. Applied to robots, the approach faces distinctive difficulties. Real interaction is slow and wears out hardware, so training usually happens in simulation and must then cross the reality gap to the physical system. Rewards are often sparse \u2014 a grasp either succeeds or does not \u2014 which makes credit assignment hard. And exploration on real hardware can be unsafe, which is why constrained or shielded formulations are common in deployed systems.",
+        "score": 0.005543505772948265
+      }
+    ],
+    "model": "phi4:latest",
+    "generated_utc": "2026-09-07T18:19:14Z"
+  },
+  "Who wrote the play Hamlet?": {
+    "answer": "NOT_IN_CORPUS\n\nThe passages provided do not contain any information about who wrote the play \"Hamlet.\" [1], [2], [3], [4], [5]",
+    "category": "general",
+    "abstained": true,
+    "top_score": 0.08425769209861755,
+    "passages": [
+      {
+        "id": 1,
+        "page": 8,
+        "text": "actor-critic methods combine both, using a learned value estimate to reduce the variance of the policy update. Applied to robots, the approach faces distinctive difficulties. Real interaction is slow and wears out hardware, so training usually happens in simulation and must then cross the reality gap to the physical system. Rewards are often sparse \u2014 a grasp either succeeds or does not \u2014 which makes credit assignment hard. And exploration on real hardware can be unsafe, which is why constrained or shielded formulations are common in deployed systems.",
+        "score": 0.08425769209861755
+      },
+      {
+        "id": 2,
+        "page": 3,
+        "text": "Self-Supervised Depth Estimation Depth estimation is a canonical self-supervised task because geometry supplies the label for free. Given a stereo pair, or two consecutive frames from a moving monocular camera, a network predicts a depth map. That predicted depth, combined with the known or estimated camera motion, is used to warp one image into the viewpoint of the other. The difference between the warped image and the real one \u2014 the photometric reprojection error \u2014 becomes the training loss. No human ever labels a depth value. The supervisory signal comes entirely from the constraint",
+        "score": 0.05666211619973183
+      },
+      {
+        "id": 3,
+        "page": 1,
+        "text": "Machine Learning Paradigms in Robotics Robot learning is usually organised into three paradigms. In supervised learning a model is trained on input-output pairs that a human has labelled, which is accurate but expensive to scale. In unsupervised learning the model receives no labels and must find structure in the data itself, for example by clustering similar sensor readings. In reinforcement learning the model receives neither labels nor structure but a scalar reward signal indicating how good an action was, and it improves by maximising cumulative reward. Self-supervised learning sits between these. It is a variant of unsupervised learning in",
+        "score": 0.049476057291030884
+      },
+      {
+        "id": 4,
+        "page": 2,
+        "text": "The Role of Self-Supervised Learning in Robotics Self-supervised learning reduces a robot's dependence on manual annotation by generating its own supervisory signal from the structure already present in the data. A common recipe is to hide part of an observation and train the network to reconstruct it, using the withheld part as the label. Because the label comes from the data itself, the method scales to as much unlabelled experience as the robot can collect. In practice this is used for large-scale pre-training. A network is first trained on a large unlabelled dataset with a self-supervised objective, learning general visual or dynamical",
+        "score": 0.04767240583896637
+      },
+      {
+        "id": 5,
+        "page": 10,
+        "text": "but degrade in darkness; lidar gives precise geometry but is sparse and struggles with rain and reflective surfaces; inertial units are fast and never occluded but drift over time; wheel odometry is cheap but wrong whenever wheels slip. Combining them improves performance in several ways. Averaging independent noisy measurements reduces variance. Complementary modalities cover each other's blind spots, so the system degrades gracefully instead of failing outright when one sensor is compromised. Different sampling rates can be interleaved, with a fast inertial signal propagating the estimate between slower absolute fixes.",
+        "score": 0.013123080134391785
+      }
+    ],
+    "model": "phi4:latest",
+    "generated_utc": "2026-09-07T18:19:19Z"
+  },
+  "What is the chemical symbol for water?": {
+    "answer": "NOT_IN_CORPUS",
+    "category": "general",
+    "abstained": true,
+    "top_score": 0.029003040865063667,
+    "passages": [
+      {
+        "id": 1,
+        "page": 3,
+        "text": "motion, is used to warp one image into the viewpoint of the other. The difference between the warped image and the real one \u2014 the photometric reprojection error \u2014 becomes the training loss. No human ever labels a depth value. The supervisory signal comes entirely from the constraint that the same physical scene, viewed from two positions, must be geometrically consistent. This lets a robot learn metric depth from ordinary driving or walking footage. The approach has known failure modes. Textureless surfaces give a weak photometric signal, because many candidate depths reproduce the target image equally well. Moving objects violate",
+        "score": 0.029003040865063667
+      },
+      {
+        "id": 2,
+        "page": 6,
+        "text": "Max-Pooling Layers and Their Purpose A max-pooling layer downsamples a feature map by dividing it into small non-overlapping windows and keeping only the maximum activation within each. A 2x2 pooling window halves the width and height, reducing the number of values by a factor of four. It serves three purposes. It reduces the spatial resolution and therefore the computation and memory required by subsequent layers. It enlarges the effective receptive field, so later layers see a wider area of the original image for the same filter size. And it introduces a degree of local translation invariance: shifting a feature by one pixel within a pooling",
+        "score": 0.01805160567164421
+      },
+      {
+        "id": 3,
+        "page": 5,
+        "text": "over the same input, and what it learns is translation-equivariant: a feature detected in one part of the image is detected identically elsewhere. Early convolutional layers learn simple, local structure \u2014 oriented edges, colour transitions, small blobs. Deeper layers, whose receptive fields cover more of the original image, combine these into progressively more abstract patterns such as textures, object parts and eventually whole objects. This hierarchy is learned, not designed. Stacking many such layers with small filters is the basis of architectures like VGG, in which repeated blocks of convolutions are interleaved with downsampling stages.",
+        "score": 0.012235397472977638
+      },
+      {
+        "id": 4,
+        "page": 3,
+        "text": "that the same physical scene, viewed from two positions, must be geometrically consistent. This lets a robot learn metric depth from ordinary driving or walking footage. The approach has known failure modes. Textureless surfaces give a weak photometric signal, because many candidate depths reproduce the target image equally well. Moving objects violate the static-scene assumption behind the warping step, and specular or transparent surfaces break the assumption that a point looks the same from different viewpoints. Practical systems add masking terms to suppress these regions during training.",
+        "score": 0.01070292480289936
+      },
+      {
+        "id": 5,
+        "page": 2,
+        "text": "features, and is then fine-tuned on a much smaller labelled dataset for the specific task at hand, such as object classification or grasp-point prediction. The result is that a robot reaches a target accuracy with far fewer human-labelled examples than supervised training alone would require. A second use is plausibility checking. A model trained to predict how an image sequence should continue can flag sequences that violate its expectations, which is useful for detecting sensor faults or anomalous situations without anyone having labelled those failures in advance.",
+        "score": 0.0039735883474349976
+      }
+    ],
+    "model": "phi4:latest",
+    "generated_utc": "2026-09-07T18:19:24Z"
+  },
+  "How many continents are there on Earth?": {
+    "answer": "NOT_IN_CORPUS",
+    "category": "general",
+    "abstained": true,
+    "top_score": 0.061407670378685,
+    "passages": [
+      {
+        "id": 1,
+        "page": 9,
+        "text": "Recurrent Networks and LSTM Cells A plain recurrent network processes a sequence one step at a time, carrying a hidden state forward. Training it by backpropagation through time repeatedly multiplies gradients by the same recurrent weights, so gradients tend to shrink toward zero or grow without bound over long sequences. The vanishing case is what prevents such networks from learning long-range dependencies. The Long Short-Term Memory cell addresses this with an explicit memory cell and three multiplicative gates. The forget gate decides what proportion of the existing cell state to",
+        "score": 0.061407670378685
+      },
+      {
+        "id": 2,
+        "page": 1,
+        "text": "Machine Learning Paradigms in Robotics Robot learning is usually organised into three paradigms. In supervised learning a model is trained on input-output pairs that a human has labelled, which is accurate but expensive to scale. In unsupervised learning the model receives no labels and must find structure in the data itself, for example by clustering similar sensor readings. In reinforcement learning the model receives neither labels nor structure but a scalar reward signal indicating how good an action was, and it improves by maximising cumulative reward. Self-supervised learning sits between these. It is a variant of unsupervised learning in",
+        "score": 0.05808289721608162
+      },
+      {
+        "id": 3,
+        "page": 11,
+        "text": "or payload changes. In human-robot interaction, learning supports gesture and speech recognition, intent prediction and safe trajectory adjustment around people. In industrial operation it supports predictive maintenance, anomaly detection in process data, and visual quality inspection on production lines. The common thread is that learning is applied where an explicit model is unavailable, too expensive to build, or too brittle to maintain \u2014 and that classical methods remain preferable wherever a reliable model does exist.",
+        "score": 0.04921061545610428
+      },
+      {
+        "id": 4,
+        "page": 4,
+        "text": "Artificial Neural Networks and Their Advantages in Robotics An artificial neural network is a composition of parameterised layers, each applying a linear transformation followed by a non-linear activation, trained end to end by gradient descent on a loss function. Three properties make them well suited to robotics. First, they learn features rather than requiring an engineer to design them: a network trained on camera input discovers useful edge and texture detectors without anyone specifying what an edge is. Second, they handle high-dimensional, noisy, heterogeneous input \u2014 camera frames, lidar returns, joint encoders \u2014",
+        "score": 0.02535509131848812
+      },
+      {
+        "id": 5,
+        "page": 4,
+        "text": "within a single differentiable model. Third, once trained, inference is a fixed sequence of matrix operations with predictable latency, which suits real-time control loops. The costs are equally real. Networks need large quantities of representative training data; they generalise poorly to conditions outside their training distribution; and their decisions are difficult to interpret, which is a serious obstacle to certification in safety-critical settings.",
+        "score": 0.02346123941242695
+      }
+    ],
+    "model": "phi4:latest",
+    "generated_utc": "2026-09-07T18:19:27Z"
+  },
+  "When did World War II end?": {
+    "answer": "NOT_IN_CORPUS",
+    "category": "general",
+    "abstained": true,
+    "top_score": 0.051638904958963394,
+    "passages": [
+      {
+        "id": 1,
+        "page": 9,
+        "text": "long sequences. The vanishing case is what prevents such networks from learning long-range dependencies. The Long Short-Term Memory cell addresses this with an explicit memory cell and three multiplicative gates. The forget gate decides what proportion of the existing cell state to retain. The input gate decides how much of the newly computed candidate value to write. The output gate decides how much of the cell state is exposed as the hidden state at that step. The mechanism that preserves long-term dependencies is the cell state's additive update path. Rather than being repeatedly multiplied by a weight matrix, the cell state is modified by",
+        "score": 0.051638904958963394
+      },
+      {
+        "id": 2,
+        "page": 9,
+        "text": "Recurrent Networks and LSTM Cells A plain recurrent network processes a sequence one step at a time, carrying a hidden state forward. Training it by backpropagation through time repeatedly multiplies gradients by the same recurrent weights, so gradients tend to shrink toward zero or grow without bound over long sequences. The vanishing case is what prevents such networks from learning long-range dependencies. The Long Short-Term Memory cell addresses this with an explicit memory cell and three multiplicative gates. The forget gate decides what proportion of the existing cell state to",
+        "score": 0.02637648582458496
+      },
+      {
+        "id": 3,
+        "page": 8,
+        "text": "actor-critic methods combine both, using a learned value estimate to reduce the variance of the policy update. Applied to robots, the approach faces distinctive difficulties. Real interaction is slow and wears out hardware, so training usually happens in simulation and must then cross the reality gap to the physical system. Rewards are often sparse \u2014 a grasp either succeeds or does not \u2014 which makes credit assignment hard. And exploration on real hardware can be unsafe, which is why constrained or shielded formulations are common in deployed systems.",
+        "score": 0.016517512500286102
+      },
+      {
+        "id": 4,
+        "page": 9,
+        "text": "retain. The input gate decides how much of the newly computed candidate value to write. The output gate decides how much of the cell state is exposed as the hidden state at that step. The mechanism that preserves long-term dependencies is the cell state's additive update path. Rather than being repeatedly multiplied by a weight matrix, the cell state is modified by addition, with the forget gate controlling decay. When the forget gate stays near one, the gradient flows backwards across many time steps almost undiminished, so the network can link an event to a consequence that occurs much later in the sequence. In robotics this supports tasks where the correct action depends on something observed long before, such as remembering",
+        "score": 0.011777027510106564
+      },
+      {
+        "id": 5,
+        "page": 7,
+        "text": "The Markov Decision Process A Markov Decision Process is the formal model underlying reinforcement learning. It is defined by a set of states, a set of actions, a transition function giving the probability of reaching a next state after taking an action in a current state, a reward function, and a discount factor between zero and one that determines how strongly future reward is preferred to immediate reward. The defining assumption is the Markov property: the next state depends only on the current state and the chosen action, not on the history that led there. The current state is therefore",
+        "score": -0.0032963398844003677
+      }
+    ],
+    "model": "phi4:latest",
+    "generated_utc": "2026-09-07T18:19:31Z"
+  },
+  "What is the powerhouse of the cell?": {
+    "answer": "NOT_IN_CORPUS",
+    "category": "general",
+    "abstained": true,
+    "top_score": 0.21288129687309265,
+    "passages": [
+      {
+        "id": 1,
+        "page": 9,
+        "text": "Recurrent Networks and LSTM Cells A plain recurrent network processes a sequence one step at a time, carrying a hidden state forward. Training it by backpropagation through time repeatedly multiplies gradients by the same recurrent weights, so gradients tend to shrink toward zero or grow without bound over long sequences. The vanishing case is what prevents such networks from learning long-range dependencies. The Long Short-Term Memory cell addresses this with an explicit memory cell and three multiplicative gates. The forget gate decides what proportion of the existing cell state to",
+        "score": 0.21288129687309265
+      },
+      {
+        "id": 2,
+        "page": 9,
+        "text": "retain. The input gate decides how much of the newly computed candidate value to write. The output gate decides how much of the cell state is exposed as the hidden state at that step. The mechanism that preserves long-term dependencies is the cell state's additive update path. Rather than being repeatedly multiplied by a weight matrix, the cell state is modified by addition, with the forget gate controlling decay. When the forget gate stays near one, the gradient flows backwards across many time steps almost undiminished, so the network can link an event to a consequence that occurs much later in the sequence. In robotics this supports tasks where the correct action depends on something observed long before, such as remembering",
+        "score": 0.1867084801197052
+      },
+      {
+        "id": 3,
+        "page": 9,
+        "text": "long sequences. The vanishing case is what prevents such networks from learning long-range dependencies. The Long Short-Term Memory cell addresses this with an explicit memory cell and three multiplicative gates. The forget gate decides what proportion of the existing cell state to retain. The input gate decides how much of the newly computed candidate value to write. The output gate decides how much of the cell state is exposed as the hidden state at that step. The mechanism that preserves long-term dependencies is the cell state's additive update path. Rather than being repeatedly multiplied by a weight matrix, the cell state is modified by",
+        "score": 0.1706220507621765
+      },
+      {
+        "id": 4,
+        "page": 8,
+        "text": "Deep Reinforcement Learning in Robotics Deep reinforcement learning combines the MDP formulation with neural networks used as function approximators. Instead of storing a value for every state, which is impossible for continuous or image-based state spaces, a network maps states to values or directly to actions. Training proceeds by interaction. The agent observes a state, selects an action, receives a reward and a new state, and uses that experience to update its parameters. Value-based methods learn to estimate expected return and act greedily with respect to it; policy-gradient methods adjust the policy parameters directly in the direction that increases expected return;",
+        "score": 0.16051319241523743
+      },
+      {
+        "id": 5,
+        "page": 10,
+        "text": "Sensor Fusion Sensor fusion combines measurements from several sensors into a single estimate that is more accurate and more robust than any individual sensor could provide. The motivation is that sensors fail in different, largely independent ways: cameras are dense and semantically rich but degrade in darkness; lidar gives precise geometry but is sparse and struggles with rain and reflective surfaces; inertial units are fast and never occluded but drift over time; wheel odometry is cheap but wrong whenever wheels slip. Combining them improves performance in several ways. Averaging independent noisy measurements",
+        "score": 0.11094063520431519
+      }
+    ],
+    "model": "phi4:latest",
+    "generated_utc": "2026-09-07T18:19:35Z"
+  },
+  "Who painted the Mona Lisa?": {
+    "answer": "NOT_IN_CORPUS\n\nThe passages provided do not contain any information about who painted the Mona Lisa. [1-5]",
+    "category": "general",
+    "abstained": true,
+    "top_score": 0.10811802744865417,
+    "passages": [
+      {
+        "id": 1,
+        "page": 3,
+        "text": "Self-Supervised Depth Estimation Depth estimation is a canonical self-supervised task because geometry supplies the label for free. Given a stereo pair, or two consecutive frames from a moving monocular camera, a network predicts a depth map. That predicted depth, combined with the known or estimated camera motion, is used to warp one image into the viewpoint of the other. The difference between the warped image and the real one \u2014 the photometric reprojection error \u2014 becomes the training loss. No human ever labels a depth value. The supervisory signal comes entirely from the constraint",
+        "score": 0.10811802744865417
+      },
+      {
+        "id": 2,
+        "page": 3,
+        "text": "that the same physical scene, viewed from two positions, must be geometrically consistent. This lets a robot learn metric depth from ordinary driving or walking footage. The approach has known failure modes. Textureless surfaces give a weak photometric signal, because many candidate depths reproduce the target image equally well. Moving objects violate the static-scene assumption behind the warping step, and specular or transparent surfaces break the assumption that a point looks the same from different viewpoints. Practical systems add masking terms to suppress these regions during training.",
+        "score": 0.08622211217880249
+      },
+      {
+        "id": 3,
+        "page": 6,
+        "text": "Max-Pooling Layers and Their Purpose A max-pooling layer downsamples a feature map by dividing it into small non-overlapping windows and keeping only the maximum activation within each. A 2x2 pooling window halves the width and height, reducing the number of values by a factor of four. It serves three purposes. It reduces the spatial resolution and therefore the computation and memory required by subsequent layers. It enlarges the effective receptive field, so later layers see a wider area of the original image for the same filter size. And it introduces a degree of local translation invariance: shifting a feature by one pixel within a pooling",
+        "score": 0.05017061159014702
+      },
+      {
+        "id": 4,
+        "page": 7,
+        "text": "The Markov Decision Process A Markov Decision Process is the formal model underlying reinforcement learning. It is defined by a set of states, a set of actions, a transition function giving the probability of reaching a next state after taking an action in a current state, a reward function, and a discount factor between zero and one that determines how strongly future reward is preferred to immediate reward. The defining assumption is the Markov property: the next state depends only on the current state and the chosen action, not on the history that led there. The current state is therefore",
+        "score": 0.03594515100121498
+      },
+      {
+        "id": 5,
+        "page": 5,
+        "text": "over the same input, and what it learns is translation-equivariant: a feature detected in one part of the image is detected identically elsewhere. Early convolutional layers learn simple, local structure \u2014 oriented edges, colour transitions, small blobs. Deeper layers, whose receptive fields cover more of the original image, combine these into progressively more abstract patterns such as textures, object parts and eventually whole objects. This hierarchy is learned, not designed. Stacking many such layers with small filters is the basis of architectures like VGG, in which repeated blocks of convolutions are interleaved with downsampling stages.",
+        "score": 0.029214926064014435
+      }
+    ],
+    "model": "phi4:latest",
+    "generated_utc": "2026-09-07T18:19:39Z"
+  },
+  "What is the speed of light in vacuum?": {
+    "answer": "NOT_IN_CORPUS",
+    "category": "general",
+    "abstained": true,
+    "top_score": 0.17675934731960297,
+    "passages": [
+      {
+        "id": 1,
+        "page": 3,
+        "text": "motion, is used to warp one image into the viewpoint of the other. The difference between the warped image and the real one \u2014 the photometric reprojection error \u2014 becomes the training loss. No human ever labels a depth value. The supervisory signal comes entirely from the constraint that the same physical scene, viewed from two positions, must be geometrically consistent. This lets a robot learn metric depth from ordinary driving or walking footage. The approach has known failure modes. Textureless surfaces give a weak photometric signal, because many candidate depths reproduce the target image equally well. Moving objects violate",
+        "score": 0.17675934731960297
+      },
+      {
+        "id": 2,
+        "page": 3,
+        "text": "that the same physical scene, viewed from two positions, must be geometrically consistent. This lets a robot learn metric depth from ordinary driving or walking footage. The approach has known failure modes. Textureless surfaces give a weak photometric signal, because many candidate depths reproduce the target image equally well. Moving objects violate the static-scene assumption behind the warping step, and specular or transparent surfaces break the assumption that a point looks the same from different viewpoints. Practical systems add masking terms to suppress these regions during training.",
+        "score": 0.11124961078166962
+      },
+      {
+        "id": 3,
+        "page": 10,
+        "text": "Fusion is performed at different levels. Early fusion combines raw measurements before any interpretation; late fusion combines the independent outputs of separate per-sensor pipelines; intermediate fusion merges learned feature representations. Classical probabilistic approaches such as the Kalman filter and its non-linear variants remain standard where the system dynamics are well modelled, while learned fusion is increasingly used where they are not. Correct fusion depends critically on accurate extrinsic calibration between sensors and on precise time synchronisation, since a fused estimate built from misaligned or mistimed inputs can be worse than any single sensor alone.",
+        "score": 0.1055750921368599
+      },
+      {
+        "id": 4,
+        "page": 5,
+        "text": "Convolutional Layers and Their Function in Vision A convolutional layer applies a small learned filter across the whole input image, computing a weighted sum of each local neighbourhood to produce a feature map. Because the same filter is reused at every position, the layer has far fewer parameters than a fully connected layer over the same input, and what it learns is translation-equivariant: a feature detected in one part of the image is detected identically elsewhere. Early convolutional layers learn simple, local structure \u2014 oriented edges, colour transitions, small blobs. Deeper layers, whose receptive fields cover more of the original image, combine",
+        "score": 0.07396072149276733
+      },
+      {
+        "id": 5,
+        "page": 11,
+        "text": "or payload changes. In human-robot interaction, learning supports gesture and speech recognition, intent prediction and safe trajectory adjustment around people. In industrial operation it supports predictive maintenance, anomaly detection in process data, and visual quality inspection on production lines. The common thread is that learning is applied where an explicit model is unavailable, too expensive to build, or too brittle to maintain \u2014 and that classical methods remain preferable wherever a reliable model does exist.",
+        "score": 0.07370539009571075
+      }
+    ],
+    "model": "phi4:latest",
+    "generated_utc": "2026-09-07T18:19:43Z"
+  },
+  "What is the tallest mountain on Earth?": {
+    "answer": "NOT_IN_CORPUS",
+    "category": "general",
+    "abstained": true,
+    "top_score": 0.017638396471738815,
+    "passages": [
+      {
+        "id": 1,
+        "page": 9,
+        "text": "Recurrent Networks and LSTM Cells A plain recurrent network processes a sequence one step at a time, carrying a hidden state forward. Training it by backpropagation through time repeatedly multiplies gradients by the same recurrent weights, so gradients tend to shrink toward zero or grow without bound over long sequences. The vanishing case is what prevents such networks from learning long-range dependencies. The Long Short-Term Memory cell addresses this with an explicit memory cell and three multiplicative gates. The forget gate decides what proportion of the existing cell state to",
+        "score": 0.017638396471738815
+      },
+      {
+        "id": 2,
+        "page": 10,
+        "text": "but degrade in darkness; lidar gives precise geometry but is sparse and struggles with rain and reflective surfaces; inertial units are fast and never occluded but drift over time; wheel odometry is cheap but wrong whenever wheels slip. Combining them improves performance in several ways. Averaging independent noisy measurements reduces variance. Complementary modalities cover each other's blind spots, so the system degrades gracefully instead of failing outright when one sensor is compromised. Different sampling rates can be interleaved, with a fast inertial signal propagating the estimate between slower absolute fixes.",
+        "score": 0.009840324521064758
+      },
+      {
+        "id": 3,
+        "page": 3,
+        "text": "motion, is used to warp one image into the viewpoint of the other. The difference between the warped image and the real one \u2014 the photometric reprojection error \u2014 becomes the training loss. No human ever labels a depth value. The supervisory signal comes entirely from the constraint that the same physical scene, viewed from two positions, must be geometrically consistent. This lets a robot learn metric depth from ordinary driving or walking footage. The approach has known failure modes. Textureless surfaces give a weak photometric signal, because many candidate depths reproduce the target image equally well. Moving objects violate",
+        "score": 0.009256135672330856
+      },
+      {
+        "id": 4,
+        "page": 11,
+        "text": "for localisation and mapping. In planning and control, learned models are used for motion planning in cluttered environments, for grasp synthesis where analytic approaches struggle with unfamiliar object geometry, and for adaptive control that compensates for unmodelled dynamics such as friction or payload changes. In human-robot interaction, learning supports gesture and speech recognition, intent prediction and safe trajectory adjustment around people. In industrial operation it supports predictive maintenance, anomaly detection in process data, and visual quality inspection on",
+        "score": 0.004217221401631832
+      },
+      {
+        "id": 5,
+        "page": 11,
+        "text": "Applications of Machine Learning in Robotics Machine learning appears across the robotic stack. In perception it supports object detection and classification, semantic and instance segmentation, pose estimation, depth prediction and visual place recognition. In state estimation it complements or replaces hand-tuned filters for localisation and mapping. In planning and control, learned models are used for motion planning in cluttered environments, for grasp synthesis where analytic approaches struggle with unfamiliar object geometry, and for adaptive control that compensates for unmodelled dynamics such as friction",
+        "score": -0.0010938646737486124
+      }
+    ],
+    "model": "phi4:latest",
+    "generated_utc": "2026-09-07T18:19:46Z"
+  },
+  "Which element has atomic number 6?": {
+    "answer": "NOT_IN_CORPUS",
+    "category": "general",
+    "abstained": true,
+    "top_score": 0.0628097653388977,
+    "passages": [
+      {
+        "id": 1,
+        "page": 9,
+        "text": "addition, with the forget gate controlling decay. When the forget gate stays near one, the gradient flows backwards across many time steps almost undiminished, so the network can link an event to a consequence that occurs much later in the sequence. In robotics this supports tasks where the correct action depends on something observed long before, such as remembering which way a corridor turned.",
+        "score": 0.0628097653388977
+      },
+      {
+        "id": 2,
+        "page": 9,
+        "text": "retain. The input gate decides how much of the newly computed candidate value to write. The output gate decides how much of the cell state is exposed as the hidden state at that step. The mechanism that preserves long-term dependencies is the cell state's additive update path. Rather than being repeatedly multiplied by a weight matrix, the cell state is modified by addition, with the forget gate controlling decay. When the forget gate stays near one, the gradient flows backwards across many time steps almost undiminished, so the network can link an event to a consequence that occurs much later in the sequence. In robotics this supports tasks where the correct action depends on something observed long before, such as remembering",
+        "score": 0.05638168007135391
+      },
+      {
+        "id": 3,
+        "page": 7,
+        "text": "discount factor between zero and one that determines how strongly future reward is preferred to immediate reward. The defining assumption is the Markov property: the next state depends only on the current state and the chosen action, not on the history that led there. The current state is therefore a sufficient statistic for the future. A policy maps states to actions. The value of a state under a policy is the expected discounted sum of future rewards obtained by following that policy from that state. Solving an MDP means finding a policy that maximises this expected return. When the robot cannot observe",
+        "score": 0.04695960879325867
+      },
+      {
+        "id": 4,
+        "page": 7,
+        "text": "a sufficient statistic for the future. A policy maps states to actions. The value of a state under a policy is the expected discounted sum of future rewards obtained by following that policy from that state. Solving an MDP means finding a policy that maximises this expected return. When the robot cannot observe the full state \u2014 which is normal, since sensors are partial and noisy \u2014 the problem becomes a partially observable MDP, and the agent must act on a belief over states rather than the state itself.",
+        "score": 0.044510506093502045
+      },
+      {
+        "id": 5,
+        "page": 2,
+        "text": "features, and is then fine-tuned on a much smaller labelled dataset for the specific task at hand, such as object classification or grasp-point prediction. The result is that a robot reaches a target accuracy with far fewer human-labelled examples than supervised training alone would require. A second use is plausibility checking. A model trained to predict how an image sequence should continue can flag sequences that violate its expectations, which is useful for detecting sensor faults or anomalous situations without anyone having labelled those failures in advance.",
+        "score": 0.03772146254777908
+      }
+    ],
+    "model": "phi4:latest",
+    "generated_utc": "2026-09-07T18:19:50Z"
+  }
+}

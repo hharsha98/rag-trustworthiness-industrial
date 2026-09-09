@@ -1,0 +1,749 @@
+{
+  "_method": "Graded nDCG@k (linear gain), Recall@k (fraction of grade>=1 sections retrieved), MRR@k (reciprocal rank of first grade-2 chunk in top k), over 10 queries from retrieval_judgments.json. Two bootstrap CIs (95%, 10000 resamples, seed=0): 'ci' is a per-config CI on the raw mean (resample queries); 'vs_dense_ci' is a PAIRED bootstrap CI on the difference from the dense baseline (resample query pairs). A 'vs_dense_ci' that contains 0 means the difference is not distinguishable from noise at this sample size.",
+  "_provenance_note": "The corpus is original text written for this repository, so its section boundaries are known exactly and each question was written against a specific section. Judgments are therefore made at section level and inherited by every chunk drawn from that section (a chunk's `page` is its 1-based section index). This is a small, single-annotator set on a corpus the annotator wrote: it is sufficient to rank retrieval configurations against one another, and it is NOT evidence of absolute retrieval quality on unseen corpora.",
+  "n_queries": 10,
+  "n_passages": 32,
+  "configurations": {
+    "dense": {
+      "ndcg": {
+        "3": {
+          "mean": 0.8321237770539824,
+          "ci": [
+            0.7377114904091024,
+            0.9265360636988621
+          ]
+        },
+        "5": {
+          "mean": 0.7686237018493729,
+          "ci": [
+            0.6643801502599967,
+            0.8772558624641151
+          ]
+        },
+        "10": {
+          "mean": 0.8172416444323091,
+          "ci": [
+            0.7249255737458303,
+            0.9059585759818746
+          ]
+        }
+      },
+      "recall": {
+        "3": {
+          "mean": 0.8833333333333332,
+          "ci": [
+            0.7666666666666666,
+            1.0
+          ]
+        },
+        "5": {
+          "mean": 0.9333333333333332,
+          "ci": [
+            0.8333333333333333,
+            1.0
+          ]
+        },
+        "10": {
+          "mean": 0.9666666666666666,
+          "ci": [
+            0.8999999999999998,
+            1.0
+          ]
+        }
+      },
+      "mrr": {
+        "3": {
+          "mean": 1.0,
+          "ci": [
+            1.0,
+            1.0
+          ]
+        },
+        "5": {
+          "mean": 1.0,
+          "ci": [
+            1.0,
+            1.0
+          ]
+        },
+        "10": {
+          "mean": 1.0,
+          "ci": [
+            1.0,
+            1.0
+          ]
+        }
+      }
+    },
+    "dense+rerank": {
+      "ndcg": {
+        "3": {
+          "mean": 0.7494434585596715,
+          "ci": [
+            0.6432992037642228,
+            0.8586598407528445
+          ],
+          "vs_dense_diff_mean": -0.08268031849431087,
+          "vs_dense_ci": [
+            -0.17150489178407047,
+            0.0
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        },
+        "5": {
+          "mean": 0.7806562020909675,
+          "ci": [
+            0.6882942518063335,
+            0.878697430839105
+          ],
+          "vs_dense_diff_mean": 0.012032500241594746,
+          "vs_dense_ci": [
+            -0.060304783120418835,
+            0.07885173090265013
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        },
+        "10": {
+          "mean": 0.8233089282166841,
+          "ci": [
+            0.7225504337321685,
+            0.9175458155711383
+          ],
+          "vs_dense_diff_mean": 0.006067283784374977,
+          "vs_dense_ci": [
+            -0.03012195164471242,
+            0.046464267873738974
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        }
+      },
+      "recall": {
+        "3": {
+          "mean": 0.8833333333333332,
+          "ci": [
+            0.7666666666666666,
+            1.0
+          ],
+          "vs_dense_diff_mean": 0.0,
+          "vs_dense_ci": [
+            0.0,
+            0.0
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        },
+        "5": {
+          "mean": 0.8833333333333332,
+          "ci": [
+            0.7666666666666666,
+            1.0
+          ],
+          "vs_dense_diff_mean": -0.05,
+          "vs_dense_ci": [
+            -0.15,
+            0.0
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        },
+        "10": {
+          "mean": 0.9333333333333332,
+          "ci": [
+            0.8333333333333333,
+            1.0
+          ],
+          "vs_dense_diff_mean": -0.03333333333333334,
+          "vs_dense_ci": [
+            -0.1,
+            0.0
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        }
+      },
+      "mrr": {
+        "3": {
+          "mean": 1.0,
+          "ci": [
+            1.0,
+            1.0
+          ],
+          "vs_dense_diff_mean": 0.0,
+          "vs_dense_ci": [
+            0.0,
+            0.0
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        },
+        "5": {
+          "mean": 1.0,
+          "ci": [
+            1.0,
+            1.0
+          ],
+          "vs_dense_diff_mean": 0.0,
+          "vs_dense_ci": [
+            0.0,
+            0.0
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        },
+        "10": {
+          "mean": 1.0,
+          "ci": [
+            1.0,
+            1.0
+          ],
+          "vs_dense_diff_mean": 0.0,
+          "vs_dense_ci": [
+            0.0,
+            0.0
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        }
+      }
+    },
+    "sparse": {
+      "ndcg": {
+        "3": {
+          "mean": 0.7830800320304773,
+          "ci": [
+            0.687154948968774,
+            0.8805644460730815
+          ],
+          "vs_dense_diff_mean": -0.049043745023505024,
+          "vs_dense_ci": [
+            -0.10619078935952611,
+            -0.0061442547954487
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": true
+        },
+        "5": {
+          "mean": 0.7671238432331977,
+          "ci": [
+            0.6440317129070913,
+            0.8905750657422479
+          ],
+          "vs_dense_diff_mean": -0.001499858616175165,
+          "vs_dense_ci": [
+            -0.0786121154483732,
+            0.08181085363352268
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        },
+        "10": {
+          "mean": 0.8011609191745354,
+          "ci": [
+            0.7055230268147477,
+            0.8962564494407316
+          ],
+          "vs_dense_diff_mean": -0.016080725257773577,
+          "vs_dense_ci": [
+            -0.09469782358337406,
+            0.05571194104261139
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        }
+      },
+      "recall": {
+        "3": {
+          "mean": 0.8333333333333333,
+          "ci": [
+            0.7,
+            0.9666666666666666
+          ],
+          "vs_dense_diff_mean": -0.05,
+          "vs_dense_ci": [
+            -0.15,
+            0.0
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        },
+        "5": {
+          "mean": 0.95,
+          "ci": [
+            0.85,
+            1.0
+          ],
+          "vs_dense_diff_mean": 0.016666666666666673,
+          "vs_dense_ci": [
+            -0.11666666666666665,
+            0.13333333333333336
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        },
+        "10": {
+          "mean": 1.0,
+          "ci": [
+            1.0,
+            1.0
+          ],
+          "vs_dense_diff_mean": 0.03333333333333334,
+          "vs_dense_ci": [
+            0.0,
+            0.1
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        }
+      },
+      "mrr": {
+        "3": {
+          "mean": 1.0,
+          "ci": [
+            1.0,
+            1.0
+          ],
+          "vs_dense_diff_mean": 0.0,
+          "vs_dense_ci": [
+            0.0,
+            0.0
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        },
+        "5": {
+          "mean": 1.0,
+          "ci": [
+            1.0,
+            1.0
+          ],
+          "vs_dense_diff_mean": 0.0,
+          "vs_dense_ci": [
+            0.0,
+            0.0
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        },
+        "10": {
+          "mean": 1.0,
+          "ci": [
+            1.0,
+            1.0
+          ],
+          "vs_dense_diff_mean": 0.0,
+          "vs_dense_ci": [
+            0.0,
+            0.0
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        }
+      }
+    },
+    "sparse+rerank": {
+      "ndcg": {
+        "3": {
+          "mean": 0.7494434585596715,
+          "ci": [
+            0.6432992037642228,
+            0.8586598407528445
+          ],
+          "vs_dense_diff_mean": -0.08268031849431087,
+          "vs_dense_ci": [
+            -0.17150489178407047,
+            0.0
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        },
+        "5": {
+          "mean": 0.7806562020909675,
+          "ci": [
+            0.6882942518063335,
+            0.878697430839105
+          ],
+          "vs_dense_diff_mean": 0.012032500241594746,
+          "vs_dense_ci": [
+            -0.060304783120418835,
+            0.07885173090265013
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        },
+        "10": {
+          "mean": 0.8184117473072401,
+          "ci": [
+            0.7135015046046608,
+            0.9155331836167285
+          ],
+          "vs_dense_diff_mean": 0.0011701028749311337,
+          "vs_dense_ci": [
+            -0.03803307732513026,
+            0.043806808450206854
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        }
+      },
+      "recall": {
+        "3": {
+          "mean": 0.8833333333333332,
+          "ci": [
+            0.7666666666666666,
+            1.0
+          ],
+          "vs_dense_diff_mean": 0.0,
+          "vs_dense_ci": [
+            0.0,
+            0.0
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        },
+        "5": {
+          "mean": 0.8833333333333332,
+          "ci": [
+            0.7666666666666666,
+            1.0
+          ],
+          "vs_dense_diff_mean": -0.05,
+          "vs_dense_ci": [
+            -0.15,
+            0.0
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        },
+        "10": {
+          "mean": 0.9333333333333332,
+          "ci": [
+            0.8333333333333333,
+            1.0
+          ],
+          "vs_dense_diff_mean": -0.03333333333333334,
+          "vs_dense_ci": [
+            -0.1,
+            0.0
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        }
+      },
+      "mrr": {
+        "3": {
+          "mean": 1.0,
+          "ci": [
+            1.0,
+            1.0
+          ],
+          "vs_dense_diff_mean": 0.0,
+          "vs_dense_ci": [
+            0.0,
+            0.0
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        },
+        "5": {
+          "mean": 1.0,
+          "ci": [
+            1.0,
+            1.0
+          ],
+          "vs_dense_diff_mean": 0.0,
+          "vs_dense_ci": [
+            0.0,
+            0.0
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        },
+        "10": {
+          "mean": 1.0,
+          "ci": [
+            1.0,
+            1.0
+          ],
+          "vs_dense_diff_mean": 0.0,
+          "vs_dense_ci": [
+            0.0,
+            0.0
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        }
+      }
+    },
+    "hybrid": {
+      "ndcg": {
+        "3": {
+          "mean": 0.7938557452045513,
+          "ci": [
+            0.6759795222585337,
+            0.9086598407528446
+          ],
+          "vs_dense_diff_mean": -0.03826803184943108,
+          "vs_dense_ci": [
+            -0.09134015924715544,
+            0.0
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        },
+        "5": {
+          "mean": 0.7685077262202251,
+          "ci": [
+            0.6563311576980067,
+            0.8818002996101568
+          ],
+          "vs_dense_diff_mean": -0.00011597562914765769,
+          "vs_dense_ci": [
+            -0.06767295853435694,
+            0.07234225784541422
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        },
+        "10": {
+          "mean": 0.8356691447149274,
+          "ci": [
+            0.7538767861949234,
+            0.9168709423858894
+          ],
+          "vs_dense_diff_mean": 0.018427500282618248,
+          "vs_dense_ci": [
+            -0.012828333401643995,
+            0.052925926852579616
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        }
+      },
+      "recall": {
+        "3": {
+          "mean": 0.8333333333333333,
+          "ci": [
+            0.7,
+            0.95
+          ],
+          "vs_dense_diff_mean": -0.05,
+          "vs_dense_ci": [
+            -0.15,
+            0.0
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        },
+        "5": {
+          "mean": 0.9666666666666666,
+          "ci": [
+            0.8999999999999998,
+            1.0
+          ],
+          "vs_dense_diff_mean": 0.03333333333333334,
+          "vs_dense_ci": [
+            0.0,
+            0.1
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        },
+        "10": {
+          "mean": 0.9666666666666666,
+          "ci": [
+            0.8999999999999998,
+            1.0
+          ],
+          "vs_dense_diff_mean": 0.0,
+          "vs_dense_ci": [
+            0.0,
+            0.0
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        }
+      },
+      "mrr": {
+        "3": {
+          "mean": 1.0,
+          "ci": [
+            1.0,
+            1.0
+          ],
+          "vs_dense_diff_mean": 0.0,
+          "vs_dense_ci": [
+            0.0,
+            0.0
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        },
+        "5": {
+          "mean": 1.0,
+          "ci": [
+            1.0,
+            1.0
+          ],
+          "vs_dense_diff_mean": 0.0,
+          "vs_dense_ci": [
+            0.0,
+            0.0
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        },
+        "10": {
+          "mean": 1.0,
+          "ci": [
+            1.0,
+            1.0
+          ],
+          "vs_dense_diff_mean": 0.0,
+          "vs_dense_ci": [
+            0.0,
+            0.0
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        }
+      }
+    },
+    "hybrid+rerank": {
+      "ndcg": {
+        "3": {
+          "mean": 0.7494434585596715,
+          "ci": [
+            0.6432992037642228,
+            0.8586598407528445
+          ],
+          "vs_dense_diff_mean": -0.08268031849431087,
+          "vs_dense_ci": [
+            -0.17150489178407047,
+            0.0
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        },
+        "5": {
+          "mean": 0.7806562020909675,
+          "ci": [
+            0.6882942518063335,
+            0.878697430839105
+          ],
+          "vs_dense_diff_mean": 0.012032500241594746,
+          "vs_dense_ci": [
+            -0.060304783120418835,
+            0.07885173090265013
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        },
+        "10": {
+          "mean": 0.8177708052147992,
+          "ci": [
+            0.7122323750226499,
+            0.9155331836167285
+          ],
+          "vs_dense_diff_mean": 0.0005291607824900457,
+          "vs_dense_ci": [
+            -0.03931496151001244,
+            0.04362062887265542
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        }
+      },
+      "recall": {
+        "3": {
+          "mean": 0.8833333333333332,
+          "ci": [
+            0.7666666666666666,
+            1.0
+          ],
+          "vs_dense_diff_mean": 0.0,
+          "vs_dense_ci": [
+            0.0,
+            0.0
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        },
+        "5": {
+          "mean": 0.8833333333333332,
+          "ci": [
+            0.7666666666666666,
+            1.0
+          ],
+          "vs_dense_diff_mean": -0.05,
+          "vs_dense_ci": [
+            -0.15,
+            0.0
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        },
+        "10": {
+          "mean": 0.9333333333333332,
+          "ci": [
+            0.8333333333333333,
+            1.0
+          ],
+          "vs_dense_diff_mean": -0.03333333333333334,
+          "vs_dense_ci": [
+            -0.1,
+            0.0
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        }
+      },
+      "mrr": {
+        "3": {
+          "mean": 1.0,
+          "ci": [
+            1.0,
+            1.0
+          ],
+          "vs_dense_diff_mean": 0.0,
+          "vs_dense_ci": [
+            0.0,
+            0.0
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        },
+        "5": {
+          "mean": 1.0,
+          "ci": [
+            1.0,
+            1.0
+          ],
+          "vs_dense_diff_mean": 0.0,
+          "vs_dense_ci": [
+            0.0,
+            0.0
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        },
+        "10": {
+          "mean": 1.0,
+          "ci": [
+            1.0,
+            1.0
+          ],
+          "vs_dense_diff_mean": 0.0,
+          "vs_dense_ci": [
+            0.0,
+            0.0
+          ],
+          "beats_dense_outside_ci": false,
+          "worse_than_dense_outside_ci": false
+        }
+      }
+    }
+  }
+}

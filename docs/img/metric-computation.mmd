@@ -1,0 +1,18 @@
+flowchart LR
+    CL["claims c1..cn"] --> M
+    PS["passages d1..dk"] --> M
+    M["NLI matrix<br/>n x k x {ent, neu, con}"]
+
+    M -->|"si = max_j P_ent(dj,ci)<br/>F = mean(si)"| F["Faithfulness"]
+    M -->|"kappa = mean max_j P_con"| K["Contradiction"]
+    M -->|"does cited passage<br/>entail its claim?"| A["Attribution F1"]
+    QY["query q"] --> RC["Context relevance"]
+    PS --> RC
+    QY --> RA["Answer relevance"]
+    CL --> RA
+    CL -->|"1 - mean pairwise<br/>self-similarity"| CN["Conciseness"]
+
+    F --> AGG["T_arith = sum wi*mi<br/>T_geom = prod mi^wi"]
+    A --> AGG
+    RC --> AGG
+    CN --> AGG

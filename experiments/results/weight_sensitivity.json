@@ -1,0 +1,96 @@
+{
+  "nli_model": "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli",
+  "n_items": 10,
+  "n_samples": 10000,
+  "metric_rows": [
+    {
+      "question": "What is the role of self-supervised learning in robotics?",
+      "faithfulness": 0.9698486328125,
+      "attribution": 0.6666666666666666,
+      "relevance": 0.6016802156705121,
+      "conciseness": 0.540111744571532
+    },
+    {
+      "question": "How does deep reinforcement learning work in robotics?",
+      "faithfulness": 0.74993896484375,
+      "attribution": 0.8,
+      "relevance": 0.5588530415743784,
+      "conciseness": 0.7830845831485439
+    },
+    {
+      "question": "What are the advantages of using artificial neural networks in robotics?",
+      "faithfulness": 0.9033203125,
+      "attribution": 0.8571428571428571,
+      "relevance": 0.5683605153621103,
+      "conciseness": 0.7743065860619782
+    },
+    {
+      "question": "How can sensor fusion improve robot performance?",
+      "faithfulness": 0.84326171875,
+      "attribution": 0.5,
+      "relevance": 0.45968805883458225,
+      "conciseness": 0.7260241848968483
+    },
+    {
+      "question": "What are the applications of machine learning in robotics?",
+      "faithfulness": 0.5149078369140625,
+      "attribution": 0.6666666666666666,
+      "relevance": 0.5304371480684129,
+      "conciseness": 0.7719822046432896
+    },
+    {
+      "question": "Explain the concept of self-supervised depth estimation in robotics.",
+      "faithfulness": 0.9322509765625,
+      "attribution": 0.7058823529411765,
+      "relevance": 0.536414965939319,
+      "conciseness": 0.7026761563706985
+    },
+    {
+      "question": "What is the function of convolutional layers in CNNs for vision?",
+      "faithfulness": 0.86279296875,
+      "attribution": 0.8,
+      "relevance": 0.4348783293820729,
+      "conciseness": 0.6368930643355846
+    },
+    {
+      "question": "Describe the Markov Decision Process in reinforcement learning.",
+      "faithfulness": 0.889892578125,
+      "attribution": 0.6666666666666666,
+      "relevance": 0.4510486986607189,
+      "conciseness": 0.7063255036605429
+    },
+    {
+      "question": "How does an LSTM cell retain long-term dependencies?",
+      "faithfulness": 0.698974609375,
+      "attribution": 0.5,
+      "relevance": 0.37790150191266114,
+      "conciseness": 0.6845697796055557
+    },
+    {
+      "question": "What is the purpose of max-pooling layers in CNNs?",
+      "faithfulness": 0.68121337890625,
+      "attribution": 0.4444444444444444,
+      "relevance": 0.44630994022466036,
+      "conciseness": 0.6632627208973865
+    }
+  ],
+  "arithmetic": {
+    "mean": 0.664748734428492,
+    "std": 0.09078348682428732,
+    "min": 0.38549902632737315,
+    "max": 0.9511332255771427
+  },
+  "geometric": {
+    "mean": 0.6529316796666499,
+    "std": 0.09138407798765573,
+    "min": 0.38354453659528,
+    "max": 0.9471925874162274
+  },
+  "pairwise_ranking_disagreement_rate": 0.019004444444444445,
+  "n_pairs_compared": 450000,
+  "low_faithfulness_item": {
+    "question": "What are the applications of machine learning in robotics?",
+    "faithfulness": 0.5149078369140625,
+    "compensatory_failure_rate": 0.0
+  }
+}

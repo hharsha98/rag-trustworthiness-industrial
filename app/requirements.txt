@@ -1,0 +1,10 @@
+gradio==6.26.0
+torch>=2.2,<3
+transformers>=4.40,<5
+sentence-transformers>=2.7,<4
+faiss-cpu>=1.8,<2
+pdfplumber>=0.11,<1
+pandas>=2.2,<3
+numpy>=1.26,<3
+scipy>=1.12,<2
+requests>=2.31,<3

@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAG Trustworthiness — a RAG system that measures its own answers</title>
+<meta name="description" content="A retrieval-augmented generation system that returns its evidence, five trust metrics and a non-compensatory trust score with every answer — or declines. Each metric validated on independent human annotation.">
+<style>
+  :root{
+    --bg:#fbfbfa; --panel:#fff; --ink:#16150f; --muted:#5f5c52; --line:#e2dfd6;
+    --accent:#1f5fa8; --good:#1c7a4f; --bad:#b0342a; --warn:#9a6b12;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --bg:#131316; --panel:#1a1a1e; --ink:#eceae4; --muted:#9d9a92; --line:#2e2e34;
+    --accent:#79aee8; --good:#5cc48d; --bad:#e8756a; --warn:#d9a33c;
+  }}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 var(--sans);
+       -webkit-font-smoothing:antialiased}
+  .wrap{max-width:960px;margin:0 auto;padding:0 22px}
+  header{padding:56px 0 34px;border-bottom:1px solid var(--line)}
+  h1{font-size:clamp(28px,4.4vw,42px);line-height:1.15;margin:0 0 12px;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:18px;max-width:64ch;margin:0 0 22px}
+  .links a{display:inline-block;margin:0 10px 8px 0;padding:8px 15px;border:1px solid var(--line);
+    border-radius:7px;text-decoration:none;color:var(--ink);background:var(--panel);font-size:14px}
+  .links a:hover{border-color:var(--accent);color:var(--accent)}
+  .links a.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  section{padding:44px 0;border-bottom:1px solid var(--line)}
+  h2{font-size:25px;margin:0 0 6px;letter-spacing:-.01em}
+  h3{font-size:17px;margin:26px 0 8px}
+  .lede{color:var(--muted);margin:0 0 22px;max-width:70ch}
+  p{max-width:72ch}
+  table{border-collapse:collapse;width:100%;font-size:14.5px;margin:14px 0}
+  th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-weight:600;color:var(--muted);font-size:12.5px;text-transform:uppercase;letter-spacing:.05em}
+  td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .scroll{overflow-x:auto}
+  code,kbd{font-family:var(--mono);font-size:.9em;background:var(--panel);
+    border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+  pre{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:14px 16px;
+      overflow-x:auto;font-family:var(--mono);font-size:13.5px;line-height:1.55}
+  pre code{background:none;border:0;padding:0}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:20px 22px;margin:18px 0}
+  .grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));margin:20px 0}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:15px 17px}
+  .stat .k{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+  .stat .v{font-size:27px;font-family:var(--mono);font-variant-numeric:tabular-nums;margin-top:3px;
+    letter-spacing:-.02em}
+  .good{color:var(--good)} .bad{color:var(--bad)} .warn{color:var(--warn)} .mut{color:var(--muted)}
+  .pill{display:inline-block;font-size:11.5px;font-family:var(--mono);padding:2px 8px;border-radius:20px;
+    border:1px solid var(--line);color:var(--muted)}
+  .pill.bad{border-color:var(--bad);color:var(--bad)} .pill.good{border-color:var(--good);color:var(--good)}
+  select{font:inherit;font-size:15px;padding:9px 12px;border-radius:8px;border:1px solid var(--line);
+    background:var(--panel);color:var(--ink);width:100%;max-width:640px}
+  .bar{display:inline-block;height:7px;background:var(--line);border-radius:4px;overflow:hidden;
+    min-width:78px;width:100%;max-width:150px;vertical-align:middle}
+  .bar i{display:block;height:100%}
+  .psg{border-left:3px solid var(--line);padding:5px 0 5px 13px;margin:11px 0;font-size:14px}
+  .psg .meta{font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:3px}
+  figure{margin:20px 0}
+  figure img{max-width:100%;border:1px solid var(--line);border-radius:9px;background:#fff}
+  figcaption{color:var(--muted);font-size:13.5px;margin-top:7px}
+  footer{padding:34px 0 60px;color:var(--muted);font-size:14px}
+  .note{border-left:3px solid var(--warn);padding-left:14px;color:var(--muted);font-size:14.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>A RAG system that measures its own answers</h1>
+  <p class="sub">Retrieval-augmented generation for private document corpora. Every answer comes
+  back with the passages behind it, five trust metrics, and a score that cannot be inflated by
+  fluency — or the system declines to answer. Everything runs locally against open-weight
+  models.</p>
+  <div class="links">
+    <a class="primary" href="https://github.com/hharsha98/rag-trustworthiness-industrial">Repository</a>
+    <a href="https://github.com/hharsha98/rag-trustworthiness-industrial/blob/main/METRICS.md">Formal spec</a>
+    <a href="https://github.com/hharsha98/rag-trustworthiness-industrial/blob/main/ARCHITECTURE.md">Architecture</a>
+    <a href="https://github.com/hharsha98/rag-trustworthiness-industrial/tree/main/experiments/results">Results</a>
+  </div>
+</header>
+
+<section>
+  <h2>The contract</h2>
+  <p class="lede">Most RAG systems return a fluent answer and leave you to trust it. This one
+  cannot return an answer without also returning the evidence and a measurement of how well that
+  evidence supports it.</p>
+
+<pre><code>ragtrust index data/demo_corpus.md --out ./index
+ragtrust ask "What is the purpose of max-pooling layers in CNNs?" --index ./index</code></pre>
+
+<pre><code>Answer: Max-pooling reduces the spatial resolution of a feature map [2]. It also
+enlarges the effective receptive field of later layers [1]. ...
+
+Metrics:
+  faithfulness           0.816
+  contradiction_rate     0.727
+  attribution            0.400
+  attribution_precision  1.000
+  attribution_recall     0.250
+  relevance              0.419
+  answer_relevance       n/a
+  conciseness            0.679
+
+Trust (arithmetic): 0.626
+Trust (geometric):  0.597
+Is trustworthy:     True</code></pre>
+
+  <p>Ask something the corpus does not cover and it declines rather than confabulating. On the
+  bundled corpus the pipeline answers <strong>10 of 10</strong> in-corpus questions and declines
+  <strong>10 of 10</strong> out-of-corpus ones — mean top retrieval score 0.722 against 0.082.</p>
+
+  <p><strong>Answering is deterministic.</strong> Generation defaults to greedy decoding with a
+  fixed seed, so the same question against the same corpus returns the same answer and the same
+  trust score. A measurement that moves when nothing it measures moved is not a measurement.</p>
+</section>
+
+<section>
+  <h2>Five metrics, and a score that can't be gamed</h2>
+  <p class="lede">Each measures something a different failure mode would break. Full definitions
+  and proofs are in the formal spec.</p>
+
+  <div class="scroll"><table><thead><tr><th>Metric</th><th>What it measures</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Faithfulness</strong></td><td><code>F = mean_i max_j P_entail(passage_j, claim_i)</code>
+      — how much of the answer the retrieved evidence actually entails. Contradiction is reported
+      separately as <code>&kappa;</code>, because "unsupported" and "refuted" call for different
+      responses.</td></tr>
+    <tr><td><strong>Attribution</strong></td><td>Citation precision / recall / F1 — does the answer
+      point at the <em>right</em> passage, not merely at <em>a</em> passage.</td></tr>
+    <tr><td><strong>Context relevance</strong></td><td>Did retrieval find material related to the
+      question at all.</td></tr>
+    <tr><td><strong>Answer relevance</strong></td><td>Does the answer address the question
+      <em>asked</em> — the only metric that catches a fluent, correctly-grounded answer to the
+      wrong question.</td></tr>
+    <tr><td><strong>Conciseness</strong></td><td>Semantic redundancy among the answer's own
+      claims — penalises padding, not length.</td></tr>
+  </tbody></table></div>
+
+  <h3>Aggregation is non-compensatory</h3>
+  <p>A weighted arithmetic mean lets fluency and relevance mask a hallucination. The geometric
+  form collapses when any single dimension does, and by weighted AM–GM it can never overstate
+  trust:</p>
+<pre><code>faithfulness=0.05, attribution=0.9, relevance=0.9, conciseness=0.95
+  T_arith = 0.5700   &lt;- passes
+  T_geom  = 0.2863   &lt;- correctly penalised</code></pre>
+  <p>Both are reported. Weight choice is treated as a sensitivity question rather than an
+  assumption: 10 000 Dirichlet weightings are sampled, and the two aggregators disagree on
+  ranking in 1.90% of 450 000 comparisons.</p>
+
+  <p class="mut">A metric can also be <strong>undefined</strong> rather than zero — conciseness
+  needs at least two claims, and answer relevance needs a backend that can back-generate
+  questions. An undefined metric is dropped from aggregation, never scored as 0, and both
+  aggregates renormalise over the surviving weights so the AM–GM bound keeps holding.</p>
+</section>
+
+<section>
+  <h2>Every metric, measured on somebody else's data</h2>
+  <p class="lede">Validating a metric only on data you wrote yourself measures the difficulty of
+  your own test set, not the metric. Each of these was checked against independent human
+  annotation — five benchmarks, none authored by this project.</p>
+
+  <div class="scroll"><table><thead><tr><th>Metric</th><th>Benchmark</th>
+    <th class="num">ROC-AUC</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Attribution</strong></td><td>AttrEval-GenSearch — 242 human-judged citations
+      from live search output</td><td class="num"><strong>0.805</strong></td></tr>
+    <tr><td><strong>Relevance</strong></td><td>BEIR SciFact — expert qrels, BM25-chosen hard
+      negatives</td><td class="num"><strong>0.956</strong> / 0.745</td></tr>
+    <tr><td><strong>Conciseness</strong></td><td>SEAHORSE — 4,143 human repetition
+      ratings</td><td class="num">0.647 &rarr; <strong>0.820</strong></td></tr>
+    <tr><td><strong>Faithfulness</strong></td><td>RAGTruth — 900 human-annotated RAG
+      outputs</td><td class="num"><strong>0.683</strong></td></tr>
+  </tbody></table></div>
+
+  <h3>Three results worth reading in full</h3>
+
+  <p><strong>Relevance is tested without circularity.</strong> The obvious approach — score the
+  passages the retriever returned — is invalid, because the retriever uses the <em>same
+  embedder</em> as the metric, so its top-k is selected by the quantity under test. Pairs are
+  built from the judgments instead, with hard negatives chosen by BM25: lexical, and therefore
+  independent of the embedder. Picking hard negatives with the dense retriever would bias the
+  test the other way and is equally wrong.</p>
+
+  <p><strong>Conciseness is strong where it is defined.</strong> Across all 4,143 summaries it
+  scores 0.647 and cannot beat counting sentences — because <strong>68.5%</strong> of real
+  summaries decompose into fewer than two claims, where pairwise self-similarity has no meaning
+  and the metric reports "undefined". Restricted to the 1,307 where it is genuinely computed it
+  reaches <strong>0.820</strong> against 0.566 for the best pure-length baseline (p=0.0001). It
+  also passes a discriminant check that could have gone the other way: SEAHORSE rates repetition
+  and concise-representation separately, and the metric tracks repetition (0.647) while sitting
+  at chance on concise-representation (0.514) — what "penalises padding, not length" requires,
+  and not what a length proxy would do.</p>
+
+  <p><strong>A shipped threshold was interrogated rather than assumed.</strong>
+  <code>support_threshold = 0.5</code> decides whether a citation counts as supported. Two
+  benchmarks appear to disagree on its optimum (0.21 against 0.03) — but F1 ignores true
+  negatives, so its optimum tracks class prevalence, and the two sets have opposite skew (33.5%
+  vs 76.6% positive). Under a prevalence-independent criterion they agree closely:
+  &tau;* = 0.20 and 0.29, both below 0.5. The default stays at 0.5 deliberately, because
+  attribution feeds a <em>trust</em> score where a false "supported" inflates trust while a
+  false "unsupported" only deflates it — the conservative error is the second one.</p>
+
+  <p class="mut">Each result, with confidence intervals, permutation tests and stated
+  limitations, is in
+  <a href="https://github.com/hharsha98/rag-trustworthiness-industrial/tree/main/experiments/results">experiments/results/</a>.</p>
+</section>
+
+<section>
+  <h2>Retrieval, benchmarked</h2>
+  <p class="lede">Dense, BM25, Reciprocal Rank Fusion and cross-encoder reranking are all
+  implemented, and the default was chosen by measurement on BEIR/SciFact — 5,183 third-party
+  documents, 300 third-party queries, third-party judgments.</p>
+
+  <div class="scroll"><table><thead><tr><th>Configuration</th><th class="num">nDCG@10</th>
+    <th>vs dense (95% CI)</th></tr></thead>
+  <tbody>
+    <tr><td>dense</td><td class="num">0.529</td><td class="mut">baseline</td></tr>
+    <tr><td>hybrid <span class="mut">(default)</span></td><td class="num">0.644</td>
+      <td class="good">+0.115 [+0.087, +0.143]</td></tr>
+    <tr><td>sparse + rerank</td><td class="num">0.680</td>
+      <td class="good">+0.150 [+0.107, +0.193]</td></tr>
+    <tr><td><strong>hybrid + rerank</strong></td><td class="num"><strong>0.687</strong></td>
+      <td class="good">+0.158 [+0.118, +0.198]</td></tr>
+  </tbody></table></div>
+
+  <p>All five non-baseline configurations beat dense at every k, each improvement surviving a
+  paired bootstrap CI over 300 queries. Reranking wins by a further +0.043 and still defaults to
+  <strong>off</strong>: it roughly doubles query latency and its unbounded scores are not
+  comparable with the retrieval gate's threshold. That is a cost decision, documented at the
+  config field, not a claim that it does not help.</p>
+
+  <p>The abstention gate is calibrated too — 300 answerable queries against 900 unanswerable ones
+  drawn from three other BEIR sets, reaching ROC-AUC <strong>0.962</strong> pooled and 0.907
+  against the hardest same-domain tier.</p>
+</section>
+
+<section>
+  <h2>Explore the real output</h2>
+  <p class="lede">All 20 evaluation questions, scored against the passages actually retrieved.
+  Precomputed — this page runs no models.</p>
+  <select id="qsel"></select>
+  <div id="qout"></div>
+</section>
+
+<footer>
+  <p>A retrieval-augmented generation system with integrated trustworthiness metrics. The bundled
+  demo corpus is original text, so everything here reproduces from a clean clone. MIT-licensed.
+  <span id="gen"></span></p>
+</footer>
+
+</div>
+<script>
+const $ = s => document.querySelector(s);
+const fmt = (x, d=3) => (x === null || x === undefined || Number.isNaN(x)) ? "n/a" : Number(x).toFixed(d);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function bar(v, tone){
+  const pct = Math.max(0, Math.min(1, Number(v) || 0)) * 100;
+  const col = tone === "bad" ? "var(--bad)" : tone === "good" ? "var(--good)" : "var(--accent)";
+  return `<span class="bar"><i style="width:${pct}%;background:${col}"></i></span>`;
+}
+
+fetch("demo_data.json").then(r => r.json()).then(D => {
+  const qs = D.questions || [];
+  $("#qsel").innerHTML = qs.map((q, i) =>
+    `<option value="${i}">[${q.category === "pdf" ? "in-corpus" : "out-of-corpus"}] ${esc(q.question)}</option>`
+  ).join("");
+
+  const render = i => {
+    const q = qs[i];
+    let h = "";
+    if (q.abstained){
+      h += `<div class="card"><p style="margin-top:0"><span class="pill good">ABSTAINED</span></p>
+        <p>The pipeline declined to answer. Top retrieval score
+        <code>${fmt(q.top_score)}</code> — below the relevance gate, so nothing in the corpus
+        supports an answer.</p>
+        <p class="mut">Declining is a first-class outcome here, not a failure: the gate fires
+        before generation, so an out-of-corpus question costs nothing to refuse.</p></div>`;
+    } else {
+      const m = q.metrics || {};
+      h += `<div class="card"><h3 style="margin-top:0">Answer</h3>
+        <p>${esc(q.answer)}</p>
+        <div class="scroll"><table><thead><tr><th>Metric</th><th class="num">score</th>
+          <th></th></tr></thead><tbody>
+          <tr><td>Faithfulness</td><td class="num good">${fmt(m.faithfulness)}</td>
+              <td>${bar(m.faithfulness,"good")}</td></tr>
+          <tr><td>Attribution (F1)</td><td class="num">${fmt(m.attribution_f1)}</td>
+              <td>${bar(m.attribution_f1)}</td></tr>
+          <tr><td>Relevance</td><td class="num">${fmt(m.relevance)}</td>
+              <td>${bar(m.relevance)}</td></tr>
+          <tr><td>Conciseness</td><td class="num">${fmt(m.conciseness)}</td>
+              <td>${bar(m.conciseness)}</td></tr>
+          <tr><td>Contradiction rate <span class="mut">(&kappa;)</span></td>
+              <td class="num">${fmt(m.contradiction_rate)}</td>
+              <td>${bar(m.contradiction_rate,"bad")}</td></tr>
+        </tbody></table></div>
+        <p class="mut" style="font-size:13.5px">Attribution precision
+        ${fmt(m.attribution_precision)} / recall ${fmt(m.attribution_recall)} — precision asks
+        whether the cited passage really supports the claim, recall whether supported claims
+        carry a citation at all.</p></div>`;
+
+      if (q.claims && q.claims.length){
+        const pc = m.per_claim || [], si = m.support_index || [];
+        h += `<h3>Per-claim grounding</h3><div class="scroll"><table><thead><tr>
+          <th>#</th><th>Claim</th><th class="num">support</th><th class="num">best passage</th>
+          </tr></thead><tbody>` +
+          q.claims.map((c, ci) => `<tr><td class="mut">c${ci}</td><td>${esc(c)}</td>
+            <td class="num">${fmt(pc[ci])}</td>
+            <td class="num mut">#${(si[ci] ?? 0) + 1}</td></tr>`).join("")
+          + `</tbody></table></div>`;
+      }
+    }
+    h += `<h3>Retrieved passages</h3>` + (q.passages || []).map(p =>
+      `<div class="psg"><div class="meta">#${p.rank} · score ${fmt(p.score)}</div>${esc(p.text)}</div>`
+    ).join("");
+    $("#qout").innerHTML = h;
+  };
+
+  $("#qsel").addEventListener("change", e => render(+e.target.value));
+  if (qs.length) render(0);
+
+  $("#gen").textContent = `Scored ${D.generated_utc} using ${D.nli_model}.`;
+}).catch(e => {
+  $("#qout").textContent = "Could not load demo_data.json — " + e;
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+{
+  "_method": "Graded relevance judgments over data/demo_corpus.md, used by experiments/07_retrieval_ablation.py to measure retrieval quality (nDCG@k, Recall@k, MRR).",
+  "_grading": {
+    "2": "The section directly answers the question.",
+    "1": "The section is genuinely useful context but does not answer the question on its own.",
+    "0": "Not relevant (absent from the map)."
+  },
+  "_provenance": "The corpus is original text written for this repository, so its section boundaries are known exactly and each question was written against a specific section. Judgments are therefore made at section level and inherited by every chunk drawn from that section (a chunk's `page` is its 1-based section index). This is a small, single-annotator set on a corpus the annotator wrote: it is sufficient to rank retrieval configurations against one another, and it is NOT evidence of absolute retrieval quality on unseen corpora.",
+  "_sections": {
+    "1": "Machine Learning Paradigms in Robotics",
+    "2": "The Role of Self-Supervised Learning in Robotics",
+    "3": "Self-Supervised Depth Estimation",
+    "4": "Artificial Neural Networks and Their Advantages in Robotics",
+    "5": "Convolutional Layers and Their Function in Vision",
+    "6": "Max-Pooling Layers and Their Purpose",
+    "7": "The Markov Decision Process",
+    "8": "Deep Reinforcement Learning in Robotics",
+    "9": "Recurrent Networks and LSTM Cells",
+    "10": "Sensor Fusion",
+    "11": "Applications of Machine Learning in Robotics"
+  },
+
+  "grades": {
+    "What is the role of self-supervised learning in robotics?": {
+      "2": 2, "1": 1, "3": 1
+    },
+    "How does deep reinforcement learning work in robotics?": {
+      "8": 2, "7": 1, "1": 1
+    },
+    "What are the advantages of using artificial neural networks in robotics?": {
+      "4": 2, "11": 1
+    },
+    "How can sensor fusion improve robot performance?": {
+      "10": 2
+    },
+    "What are the applications of machine learning in robotics?": {
+      "11": 2, "1": 1
+    },
+    "Explain the concept of self-supervised depth estimation in robotics.": {
+      "3": 2, "2": 1
+    },
+    "What is the function of convolutional layers in CNNs for vision?": {
+      "5": 2, "6": 1
+    },
+    "Describe the Markov Decision Process in reinforcement learning.": {
+      "7": 2, "8": 1
+    },
+    "How does an LSTM cell retain long-term dependencies?": {
+      "9": 2
+    },
+    "What is the purpose of max-pooling layers in CNNs?": {
+      "6": 2, "5": 1
+    }
+  }
+}

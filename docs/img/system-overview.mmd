@@ -1,0 +1,35 @@
+flowchart TB
+    subgraph ingest["1 - Ingestion (offline)"]
+        PDF[/"Domain corpus (PDF)"/] --> EX["pdfplumber text extraction"]
+        EX --> SEG["Sentence segmentation (v2)<br/>newline split (v1)"]
+        SEG --> EMB["Sentence-Transformer<br/>msmarco-distilbert-base-v4"]
+        EMB --> IDX[("FAISS index<br/>v2: normalised IP<br/>v1: unnormalised L2")]
+    end
+
+    subgraph serve["2 - Retrieval-augmented generation (online)"]
+        Q(["User query"]) --> RET["Top-k retrieval"]
+        IDX --> RET
+        RET --> PASS["Passages d1..dk"]
+        PASS --> GEN["Generator<br/>Ollama / HF Inference / cached"]
+        Q --> GEN
+        GEN --> ANS["Answer + inline citations"]
+    end
+
+    subgraph eval["3 - Trustworthiness evaluation"]
+        ANS --> CLM["Claim decomposition<br/>a into c1..cn"]
+        CLM --> NLI["NLI entailment matrix<br/>P_ent(dj, ci) for all i,j"]
+        PASS --> NLI
+        NLI --> F["Faithfulness F<br/>+ contradiction kappa"]
+        NLI --> A["Attribution<br/>precision / recall / F1"]
+        PASS --> R["Relevance<br/>R_ctx, R_ans"]
+        CLM --> C["Conciseness<br/>semantic redundancy"]
+        F --> AGG["Aggregation<br/>arithmetic or geometric"]
+        A --> AGG
+        R --> AGG
+        C --> AGG
+    end
+
+    F --> GATE{"max_i si >= tau_abstain?"}
+    GATE -- no --> ABS["Abstain:<br/>not answerable from this corpus"]
+    GATE -- yes --> OUT["Answer + citations<br/>+ trust scorecard"]
+    AGG --> OUT

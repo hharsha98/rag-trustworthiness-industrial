@@ -1,0 +1,544 @@
+{
+  "_method": "Positives: BEIR/scifact-qrels/test.tsv judged queries scored against the BeIR/scifact corpus. Negatives: fixed-seed samples from BeIR/quora (easy), BeIR/fiqa (medium), BeIR/nfcorpus (hard, noisy -- see caveat) scored against the SAME SciFact corpus. Similarity = max cosine (clamped to [0,1]) between the query embedding and any corpus document embedding, matching metrics/relevance.max_context_similarity. Objective is >=99% retention of answerable queries (near-zero false abstention), NOT balanced accuracy/F1 -- see module docstring for the asymmetry argument.",
+  "embed_model": "sentence-transformers/msmarco-distilbert-base-v4",
+  "n_corpus": 5183,
+  "n_positive": 300,
+  "n_negative_per_tier": {
+    "easy": 300,
+    "medium": 300,
+    "hard": 300
+  },
+  "current_gate": 0.3,
+  "current_gate_retention": 0.99,
+  "current_gate_far": {
+    "easy": 0.2733333333333333,
+    "medium": 0.16333333333333333,
+    "hard": 0.7266666666666667
+  },
+  "recommended_threshold": {
+    "99%": 0.3,
+    "97.5%": 0.37,
+    "95%": 0.39
+  },
+  "recommended_threshold_far": {
+    "easy": 0.2733333333333333,
+    "medium": 0.16333333333333333,
+    "hard": 0.7266666666666667
+  },
+  "verdict": "0.3 is already close to the measured >=99%-retention operating point (0.30). It retains 99.0% of answerable queries here.",
+  "distributions": {
+    "positive": {
+      "mean": 0.551246166229248,
+      "median": 0.5435382127761841,
+      "p5": 0.39694938212633135,
+      "p25": 0.47647643089294434,
+      "p50": 0.5435382425785065,
+      "p75": 0.6218733042478561,
+      "p95": 0.7294074267148972
+    },
+    "negative_easy": {
+      "mean": 0.2693181037902832,
+      "median": 0.25838369131088257,
+      "p5": 0.17843625023961068,
+      "p25": 0.22355202212929726,
+      "p50": 0.25838369131088257,
+      "p75": 0.3091147541999817,
+      "p95": 0.3906794860959053
+    },
+    "negative_medium": {
+      "mean": 0.2515637278556824,
+      "median": 0.24576491117477417,
+      "p5": 0.17296209931373596,
+      "p25": 0.21407555788755417,
+      "p50": 0.24576491117477417,
+      "p75": 0.2802340015769005,
+      "p95": 0.3396986052393915
+    },
+    "negative_hard": {
+      "mean": 0.36620980501174927,
+      "median": 0.3608362376689911,
+      "p5": 0.2167053185403347,
+      "p25": 0.29583462327718735,
+      "p50": 0.3608362376689911,
+      "p75": 0.42744074016809464,
+      "p95": 0.5356118321418762
+    },
+    "negative_pooled": {
+      "mean": 0.2956972122192383,
+      "median": 0.27323752641677856,
+      "p5": 0.1830224335193634,
+      "p25": 0.2321295589208603,
+      "p50": 0.27323752641677856,
+      "p75": 0.3482595905661583,
+      "p95": 0.46488996744155875
+    }
+  },
+  "roc_auc": {
+    "easy": {
+      "auc": 0.9856666666666667,
+      "ci95": [
+        0.9750544444444444,
+        0.9939555555555556
+      ],
+      "n_pos": 300,
+      "n_neg": 300
+    },
+    "medium": {
+      "auc": 0.9927333333333334,
+      "ci95": [
+        0.9852,
+        0.9982555555555556
+      ],
+      "n_pos": 300,
+      "n_neg": 300
+    },
+    "hard": {
+      "auc": 0.9070666666666667,
+      "ci95": [
+        0.8819763888888889,
+        0.9301338888888889
+      ],
+      "n_pos": 300,
+      "n_neg": 300
+    },
+    "pooled": {
+      "auc": 0.9618222222222222,
+      "ci95": [
+        0.9494251851851851,
+        0.9724372222222222
+      ],
+      "n_pos": 300,
+      "n_neg": 900
+    }
+  },
+  "threshold_table": [
+    {
+      "threshold": 0.0,
+      "retention": 1.0,
+      "far_easy": 1.0,
+      "far_medium": 1.0,
+      "far_hard": 1.0
+    },
+    {
+      "threshold": 0.01,
+      "retention": 1.0,
+      "far_easy": 1.0,
+      "far_medium": 1.0,
+      "far_hard": 1.0
+    },
+    {
+      "threshold": 0.02,
+      "retention": 1.0,
+      "far_easy": 1.0,
+      "far_medium": 1.0,
+      "far_hard": 1.0
+    },
+    {
+      "threshold": 0.03,
+      "retention": 1.0,
+      "far_easy": 1.0,
+      "far_medium": 1.0,
+      "far_hard": 1.0
+    },
+    {
+      "threshold": 0.04,
+      "retention": 1.0,
+      "far_easy": 1.0,
+      "far_medium": 1.0,
+      "far_hard": 1.0
+    },
+    {
+      "threshold": 0.05,
+      "retention": 1.0,
+      "far_easy": 1.0,
+      "far_medium": 1.0,
+      "far_hard": 1.0
+    },
+    {
+      "threshold": 0.06,
+      "retention": 1.0,
+      "far_easy": 1.0,
+      "far_medium": 1.0,
+      "far_hard": 1.0
+    },
+    {
+      "threshold": 0.07,
+      "retention": 1.0,
+      "far_easy": 1.0,
+      "far_medium": 1.0,
+      "far_hard": 1.0
+    },
+    {
+      "threshold": 0.08,
+      "retention": 1.0,
+      "far_easy": 1.0,
+      "far_medium": 1.0,
+      "far_hard": 1.0
+    },
+    {
+      "threshold": 0.09,
+      "retention": 1.0,
+      "far_easy": 1.0,
+      "far_medium": 1.0,
+      "far_hard": 1.0
+    },
+    {
+      "threshold": 0.1,
+      "retention": 1.0,
+      "far_easy": 1.0,
+      "far_medium": 1.0,
+      "far_hard": 1.0
+    },
+    {
+      "threshold": 0.11,
+      "retention": 1.0,
+      "far_easy": 1.0,
+      "far_medium": 1.0,
+      "far_hard": 1.0
+    },
+    {
+      "threshold": 0.12,
+      "retention": 1.0,
+      "far_easy": 1.0,
+      "far_medium": 1.0,
+      "far_hard": 1.0
+    },
+    {
+      "threshold": 0.13,
+      "retention": 1.0,
+      "far_easy": 1.0,
+      "far_medium": 0.9966666666666667,
+      "far_hard": 1.0
+    },
+    {
+      "threshold": 0.14,
+      "retention": 1.0,
+      "far_easy": 1.0,
+      "far_medium": 0.99,
+      "far_hard": 1.0
+    },
+    {
+      "threshold": 0.15,
+      "retention": 1.0,
+      "far_easy": 0.99,
+      "far_medium": 0.98,
+      "far_hard": 1.0
+    },
+    {
+      "threshold": 0.16,
+      "retention": 1.0,
+      "far_easy": 0.9833333333333333,
+      "far_medium": 0.97,
+      "far_hard": 1.0
+    },
+    {
+      "threshold": 0.17,
+      "retention": 1.0,
+      "far_easy": 0.9666666666666667,
+      "far_medium": 0.9566666666666667,
+      "far_hard": 1.0
+    },
+    {
+      "threshold": 0.18,
+      "retention": 1.0,
+      "far_easy": 0.94,
+      "far_medium": 0.93,
+      "far_hard": 1.0
+    },
+    {
+      "threshold": 0.19,
+      "retention": 1.0,
+      "far_easy": 0.9166666666666666,
+      "far_medium": 0.9033333333333333,
+      "far_hard": 0.99
+    },
+    {
+      "threshold": 0.2,
+      "retention": 1.0,
+      "far_easy": 0.8733333333333333,
+      "far_medium": 0.84,
+      "far_hard": 0.98
+    },
+    {
+      "threshold": 0.21,
+      "retention": 1.0,
+      "far_easy": 0.8266666666666667,
+      "far_medium": 0.78,
+      "far_hard": 0.9633333333333334
+    },
+    {
+      "threshold": 0.22,
+      "retention": 1.0,
+      "far_easy": 0.7766666666666666,
+      "far_medium": 0.7133333333333334,
+      "far_hard": 0.9466666666666667
+    },
+    {
+      "threshold": 0.23,
+      "retention": 1.0,
+      "far_easy": 0.7233333333333334,
+      "far_medium": 0.6433333333333333,
+      "far_hard": 0.9233333333333333
+    },
+    {
+      "threshold": 0.24,
+      "retention": 0.9933333333333333,
+      "far_easy": 0.6333333333333333,
+      "far_medium": 0.55,
+      "far_hard": 0.89
+    },
+    {
+      "threshold": 0.25,
+      "retention": 0.9933333333333333,
+      "far_easy": 0.56,
+      "far_medium": 0.4666666666666667,
+      "far_hard": 0.86
+    },
+    {
+      "threshold": 0.26,
+      "retention": 0.9933333333333333,
+      "far_easy": 0.48333333333333334,
+      "far_medium": 0.38666666666666666,
+      "far_hard": 0.8366666666666667
+    },
+    {
+      "threshold": 0.27,
+      "retention": 0.99,
+      "far_easy": 0.4266666666666667,
+      "far_medium": 0.33,
+      "far_hard": 0.81
+    },
+    {
+      "threshold": 0.28,
+      "retention": 0.99,
+      "far_easy": 0.3466666666666667,
+      "far_medium": 0.25,
+      "far_hard": 0.7833333333333333
+    },
+    {
+      "threshold": 0.29,
+      "retention": 0.99,
+      "far_easy": 0.30333333333333334,
+      "far_medium": 0.21666666666666667,
+      "far_hard": 0.7666666666666667
+    },
+    {
+      "threshold": 0.3,
+      "retention": 0.99,
+      "far_easy": 0.2733333333333333,
+      "far_medium": 0.16333333333333333,
+      "far_hard": 0.7266666666666667
+    },
+    {
+      "threshold": 0.31,
+      "retention": 0.9866666666666667,
+      "far_easy": 0.24333333333333335,
+      "far_medium": 0.14,
+      "far_hard": 0.71
+    },
+    {
+      "threshold": 0.32,
+      "retention": 0.9866666666666667,
+      "far_easy": 0.21,
+      "far_medium": 0.11,
+      "far_hard": 0.6666666666666666
+    },
+    {
+      "threshold": 0.33,
+      "retention": 0.9866666666666667,
+      "far_easy": 0.19,
+      "far_medium": 0.08,
+      "far_hard": 0.6266666666666667
+    },
+    {
+      "threshold": 0.34,
+      "retention": 0.9866666666666667,
+      "far_easy": 0.15,
+      "far_medium": 0.05,
+      "far_hard": 0.5966666666666667
+    },
+    {
+      "threshold": 0.35,
+      "retention": 0.9833333333333333,
+      "far_easy": 0.13333333333333333,
+      "far_medium": 0.05,
+      "far_hard": 0.56
+    },
+    {
+      "threshold": 0.36,
+      "retention": 0.9833333333333333,
+      "far_easy": 0.08666666666666667,
+      "far_medium": 0.04666666666666667,
+      "far_hard": 0.5066666666666667
+    },
+    {
+      "threshold": 0.37,
+      "retention": 0.9766666666666667,
+      "far_easy": 0.07666666666666666,
+      "far_medium": 0.03666666666666667,
+      "far_hard": 0.47333333333333333
+    },
+    {
+      "threshold": 0.38,
+      "retention": 0.9733333333333334,
+      "far_easy": 0.06333333333333334,
+      "far_medium": 0.03,
+      "far_hard": 0.43
+    },
+    {
+      "threshold": 0.39,
+      "retention": 0.9666666666666667,
+      "far_easy": 0.05333333333333334,
+      "far_medium": 0.02,
+      "far_hard": 0.38
+    },
+    {
+      "threshold": 0.4,
+      "retention": 0.9433333333333334,
+      "far_easy": 0.03333333333333333,
+      "far_medium": 0.013333333333333334,
+      "far_hard": 0.3433333333333333
+    },
+    {
+      "threshold": 0.41,
+      "retention": 0.9366666666666666,
+      "far_easy": 0.03,
+      "far_medium": 0.006666666666666667,
+      "far_hard": 0.30333333333333334
+    },
+    {
+      "threshold": 0.42,
+      "retention": 0.9233333333333333,
+      "far_easy": 0.023333333333333334,
+      "far_medium": 0.0033333333333333335,
+      "far_hard": 0.2733333333333333
+    },
+    {
+      "threshold": 0.43,
+      "retention": 0.9066666666666666,
+      "far_easy": 0.02,
+      "far_medium": 0.0033333333333333335,
+      "far_hard": 0.24333333333333335
+    },
+    {
+      "threshold": 0.44,
+      "retention": 0.8933333333333333,
+      "far_easy": 0.013333333333333334,
+      "far_medium": 0.0,
+      "far_hard": 0.21666666666666667
+    },
+    {
+      "threshold": 0.45,
+      "retention": 0.8666666666666667,
+      "far_easy": 0.013333333333333334,
+      "far_medium": 0.0,
+      "far_hard": 0.18
+    },
+    {
+      "threshold": 0.46,
+      "retention": 0.8266666666666667,
+      "far_easy": 0.006666666666666667,
+      "far_medium": 0.0,
+      "far_hard": 0.16666666666666666
+    },
+    {
+      "threshold": 0.47,
+      "retention": 0.7933333333333333,
+      "far_easy": 0.006666666666666667,
+      "far_medium": 0.0,
+      "far_hard": 0.13333333333333333
+    },
+    {
+      "threshold": 0.48,
+      "retention": 0.7366666666666667,
+      "far_easy": 0.006666666666666667,
+      "far_medium": 0.0,
+      "far_hard": 0.12666666666666668
+    },
+    {
+      "threshold": 0.49,
+      "retention": 0.7066666666666667,
+      "far_easy": 0.006666666666666667,
+      "far_medium": 0.0,
+      "far_hard": 0.09
+    },
+    {
+      "threshold": 0.5,
+      "retention": 0.6833333333333333,
+      "far_easy": 0.006666666666666667,
+      "far_medium": 0.0,
+      "far_hard": 0.08
+    },
+    {
+      "threshold": 0.51,
+      "retention": 0.6533333333333333,
+      "far_easy": 0.006666666666666667,
+      "far_medium": 0.0,
+      "far_hard": 0.07666666666666666
+    },
+    {
+      "threshold": 0.52,
+      "retention": 0.6133333333333333,
+      "far_easy": 0.0033333333333333335,
+      "far_medium": 0.0,
+      "far_hard": 0.06333333333333334
+    },
+    {
+      "threshold": 0.53,
+      "retention": 0.5766666666666667,
+      "far_easy": 0.0033333333333333335,
+      "far_medium": 0.0,
+      "far_hard": 0.06333333333333334
+    },
+    {
+      "threshold": 0.54,
+      "retention": 0.5333333333333333,
+      "far_easy": 0.0033333333333333335,
+      "far_medium": 0.0,
+      "far_hard": 0.05
+    },
+    {
+      "threshold": 0.55,
+      "retention": 0.47333333333333333,
+      "far_easy": 0.0033333333333333335,
+      "far_medium": 0.0,
+      "far_hard": 0.043333333333333335
+    },
+    {
+      "threshold": 0.56,
+      "retention": 0.45,
+      "far_easy": 0.0033333333333333335,
+      "far_medium": 0.0,
+      "far_hard": 0.03333333333333333
+    },
+    {
+      "threshold": 0.57,
+      "retention": 0.4,
+      "far_easy": 0.0033333333333333335,
+      "far_medium": 0.0,
+      "far_hard": 0.03333333333333333
+    },
+    {
+      "threshold": 0.58,
+      "retention": 0.3333333333333333,
+      "far_easy": 0.0033333333333333335,
+      "far_medium": 0.0,
+      "far_hard": 0.02666666666666667
+    },
+    {
+      "threshold": 0.59,
+      "retention": 0.32,
+      "far_easy": 0.0033333333333333335,
+      "far_medium": 0.0,
+      "far_hard": 0.02666666666666667
+    },
+    {
+      "threshold": 0.6,
+      "retention": 0.2966666666666667,
+      "far_easy": 0.0033333333333333335,
+      "far_medium": 0.0,
+      "far_hard": 0.02
+    }
+  ],
+  "nfcorpus_caveat": "NFCorpus is biomedical, the same broad domain as SciFact. Some of its queries may be genuinely answerable from the SciFact corpus, making them noisy (mislabeled) negatives. The 'hard' tier's false-acceptance rate is therefore a PESSIMISTIC UPPER BOUND on the true error rate against genuinely out-of-corpus biomedical queries, not a clean measurement."
+}

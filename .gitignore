@@ -1,0 +1,30 @@
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.DS_Store
+data/index/
+*.faiss
+
+# HF / torch model caches
+.cache/
+huggingface/
+torch_cache/
+
+# --- Downloaded benchmarks: fetched on demand, never committed -----------------------
+# experiments/08_beir_ablation.py pulls BEIR/SciFact from HuggingFace and caches the
+# corpus, queries, qrels and document embeddings here. Third-party data with its own
+# licence, and large; the script restores it from cache in seconds.
+data/benchmarks/
+
+# --- Third-party corpus: NOT redistributed -------------------------------------------
+# The evaluation corpus used in the thesis is FAU lecture material by another author
+# (Robotics Frameworks, Lecture Unit 05, Institute FAPS, FAU Erlangen-Nuremberg). This
+# repository does not have redistribution rights, so the PDF is deliberately untracked.
+# Keep your own copy at data/ to run the reproduction scripts locally; see data/README.md.
+data/*.pdf
+
+# NOTE: experiments/results/ is committed on purpose (reproduction artefacts) -- do not
+# add it here. data/paper_v1_ground_truth.json is committed on purpose (the author's own
+# questions and recorded metric values -- it contains no third-party text).

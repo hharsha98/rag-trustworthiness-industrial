@@ -1,0 +1,21 @@
+flowchart TB
+    subgraph local["Local - full paper stack"]
+        DC["docker compose up"]
+        DC --> OLL["Ollama<br/>llama3.2:3b / phi4"]
+        DC --> APP1["ragtrust app :7860"]
+        OLL <-->|"HTTP :11434"| APP1
+        APP1 --> VOL[("./data - corpus + index")]
+    end
+
+    subgraph hosted["HuggingFace Space - public demo"]
+        GR["Gradio app<br/>CPU basic, 16 GB"]
+        GR --> NLI2["DeBERTa-v3-base-MNLI<br/>roberta-large-mnli optional"]
+        GR --> EMB2["msmarco-distilbert-base-v4"]
+        GR --> BK{"HF_TOKEN set?"}
+        BK -- yes --> INF["HF Inference API"]
+        BK -- no --> CACHE["Cached answers<br/>demo never errors"]
+    end
+
+    subgraph ci["GitHub Actions"]
+        CIJ["pytest + reproduction gate"]
+    end
