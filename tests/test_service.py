@@ -471,3 +471,92 @@ def test_corpora_limits_reports_token_not_required_by_default(tmp_path, monkeypa
     monkeypatch.delenv("RAGTRUST_UPLOAD_TOKEN", raising=False)
     client = _upload_client(tmp_path, monkeypatch)
     assert client.get("/corpora/limits").json()["token_required"] is False
+
+
+# ----------------------------------------------------- /answer abuse protection
+#
+# create_app reads RAGTRUST_ANSWER_RATE_LIMIT / _GLOBAL_LIMIT / _RATE_WINDOW /
+# RAGTRUST_TRUST_PROXY once, at app-creation time (see service.py::create_app),
+# so every test below sets the env var(s) it needs BEFORE calling _client --
+# which builds the app -- rather than after. There is no token bypass for
+# /answer (unlike uploads), so these tests never set RAGTRUST_UPLOAD_TOKEN.
+
+
+def test_answer_over_per_client_limit_returns_429_before_generation(tmp_path, monkeypatch):
+    monkeypatch.setenv("RAGTRUST_ANSWER_RATE_LIMIT", "2")
+    monkeypatch.setenv("RAGTRUST_ANSWER_GLOBAL_LIMIT", "100")  # generous: must not be what trips
+    generator = StubGenerator(text="Photosynthesis converts sunlight into chemical energy.")
+    client = _client(
+        tmp_path, generator=generator,
+        retrieval_gate=-2.0, abstain_threshold=0.1,
+    )
+
+    for _ in range(2):
+        resp = client.post("/answer", json={"question": "How does photosynthesis work?"})
+        assert resp.status_code == 200
+    assert generator.calls == 2
+
+    resp = client.post("/answer", json={"question": "How does photosynthesis work?"})
+    assert resp.status_code == 429
+    assert "Retry-After" in resp.headers
+    retry_after = int(resp.headers["Retry-After"])
+    assert 0 < retry_after <= 3600
+    assert "2" in resp.json()["detail"]
+    # The point of the feature: the limiter runs before _pipeline_for_request /
+    # active.answer(), so a 429'd request must never reach the generator --
+    # a test that only checked the status code would pass even if the LLM
+    # call and NLI work still happened underneath.
+    assert generator.calls == 2
+
+
+def test_answer_global_limit_trips_even_with_a_different_forwarded_ip_per_request(tmp_path, monkeypatch):
+    # The scenario the global limiter exists for: under IPv6 a single host can
+    # control a /64 (billions of addresses), so a per-client limit alone
+    # bounds nothing if every request looks like a new client. Each request
+    # here presents a distinct X-Forwarded-For (trust_proxy=True, so
+    # client_key actually uses it) -- the per-client limiter never sees the
+    # same key twice, yet the shared global budget still runs out.
+    monkeypatch.setenv("RAGTRUST_TRUST_PROXY", "true")
+    monkeypatch.setenv("RAGTRUST_ANSWER_RATE_LIMIT", "100")  # generous: must not be what trips
+    monkeypatch.setenv("RAGTRUST_ANSWER_GLOBAL_LIMIT", "3")
+    generator = StubGenerator(text="Photosynthesis converts sunlight into chemical energy.")
+    client = _client(
+        tmp_path, generator=generator,
+        retrieval_gate=-2.0, abstain_threshold=0.1,
+    )
+
+    for i in range(3):
+        resp = client.post(
+            "/answer", json={"question": "How does photosynthesis work?"},
+            headers={"X-Forwarded-For": f"2001:db8::{i:x}"},
+        )
+        assert resp.status_code == 200
+    assert generator.calls == 3
+
+    resp = client.post(
+        "/answer", json={"question": "How does photosynthesis work?"},
+        headers={"X-Forwarded-For": "2001:db8::ffff"},
+    )
+    assert resp.status_code == 429
+    assert "Retry-After" in resp.headers
+    # Same enforcement-before-work check as above, this time for the global
+    # limiter specifically.
+    assert generator.calls == 3
+
+
+def test_answer_under_limit_returns_200_with_normal_body(tmp_path, monkeypatch):
+    monkeypatch.setenv("RAGTRUST_ANSWER_RATE_LIMIT", "5")
+    monkeypatch.setenv("RAGTRUST_ANSWER_GLOBAL_LIMIT", "50")
+    client = _client(
+        tmp_path,
+        generator=StubGenerator(text="Photosynthesis converts sunlight into chemical energy."),
+        retrieval_gate=-2.0, abstain_threshold=0.1,
+    )
+    resp = client.post("/answer", json={"question": "How does photosynthesis work?"})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["abstained"] is False
+    assert "trust" in body
+    assert "metrics" in body
+    assert "passages" in body
+    assert "latency_ms" in body

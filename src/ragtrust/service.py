@@ -184,10 +184,36 @@ def create_app(index_dir: str, config: Config = None, generator: Any = None) -> 
     # opts in by setting it.
     upload_token = os.environ.get("RAGTRUST_UPLOAD_TOKEN", "")
 
-    def _retry_after_message(limit: int, window_seconds: float, retry_after: int) -> str:
+    # --- /answer abuse protection. The service is about to be exposed publicly
+    # with no authentication, and POST /answer both calls a paid, hosted LLM
+    # backend and spends ~14s of CPU on NLI entailment per request on this
+    # 2-vCPU box -- see ratelimit.py's module docstring for the full picture.
+    # Read once at app-creation time (not per-request), same rationale as the
+    # upload rate-limit envs above: a single process's policy stays stable for
+    # its lifetime; tests that need a different policy build a fresh app
+    # rather than mutating environ mid-run.
+    answer_rate_limit = int(os.environ.get("RAGTRUST_ANSWER_RATE_LIMIT", "20"))
+    answer_global_limit = int(os.environ.get("RAGTRUST_ANSWER_GLOBAL_LIMIT", "200"))
+    answer_rate_window = float(os.environ.get("RAGTRUST_ANSWER_RATE_WINDOW", "3600"))
+    app.state.answer_limiter = SlidingWindowLimiter(answer_rate_limit, answer_rate_window)
+    # Same IPv6 /64 reasoning as the upload global limiter above -- a per-client
+    # cap alone assumes source addresses are scarce, which is not true once a
+    # single host can control a /64. This global cap is what actually bounds
+    # total LLM spend and CPU spent answering; the per-client limiter above is
+    # what keeps one ordinary (non-adversarial, single-address) caller from
+    # consuming the whole global budget by itself.
+    app.state.answer_global_limiter = SlidingWindowLimiter(answer_global_limit, answer_rate_window)
+    _GLOBAL_ANSWER_KEY = "__global__"
+    # Reuses `trust_proxy` (defined above for uploads) rather than a second
+    # flag -- both routes sit behind the same reverse proxy (or don't), so the
+    # trust decision is one fact about the deployment, not one per route.
+
+    def _retry_after_message(limit: int, window_seconds: float, retry_after: int, kind: str = "Upload") -> str:
         """Render `detail` for a 429 in plain language, per-hour phrasing when
         the window is an hour (the default and the common case), generic
-        otherwise. Rounds the wait to whatever unit reads most sensibly."""
+        otherwise. Rounds the wait to whatever unit reads most sensibly.
+        `kind` names the thing being limited ("Upload", "Answer") so the same
+        helper serves every rate-limited route without misnaming itself."""
         if window_seconds == 3600:
             window_desc = "per hour"
         elif window_seconds == 60:
@@ -200,7 +226,7 @@ def create_app(index_dir: str, config: Config = None, generator: Any = None) -> 
             wait_desc = f"{round(retry_after / 60)} minute(s)"
         else:
             wait_desc = f"{retry_after} second(s)"
-        return f"Upload limit reached ({limit} {window_desc}). Try again in {wait_desc}."
+        return f"{kind} limit reached ({limit} {window_desc}). Try again in {wait_desc}."
 
     def _pipeline_for_request(corpus_id: Optional[str], k: Optional[int]) -> RAGTrustPipeline:
         """Select the corpus pipeline (the bundled base one when `corpus_id`
@@ -248,7 +274,32 @@ def create_app(index_dir: str, config: Config = None, generator: Any = None) -> 
         return asdict(app.state.pipeline.config)
 
     @app.post("/answer", response_model=AnswerResponse)
-    def answer(req: AnswerRequest) -> dict:
+    def answer(req: AnswerRequest, request: Request) -> dict:
+        # Enforced before any work happens: _pipeline_for_request below is the
+        # first thing that costs anything (an LLM call, then ~14s of NLI CPU),
+        # so the limiters must run before it, not after. Per-client first,
+        # then global, same order as upload_corpus. Unlike uploads, there is no
+        # token bypass here -- /answer has no analogous "authenticated
+        # operator" concept, so every caller is subject to both limits.
+        allowed, retry_after = app.state.answer_limiter.check(client_key(request, trust_proxy))
+        if not allowed:
+            raise HTTPException(
+                status_code=429,
+                detail=_retry_after_message(answer_rate_limit, answer_rate_window, retry_after, kind="Answer"),
+                headers={"Retry-After": str(retry_after)},
+            )
+        # Checked second, only once the per-client limiter has already let
+        # this request through -- see the comment on this limiter's
+        # construction above for why it exists in addition to, not instead
+        # of, the per-client one.
+        allowed, retry_after = app.state.answer_global_limiter.check(_GLOBAL_ANSWER_KEY)
+        if not allowed:
+            raise HTTPException(
+                status_code=429,
+                detail=_retry_after_message(answer_global_limit, answer_rate_window, retry_after, kind="Answer"),
+                headers={"Retry-After": str(retry_after)},
+            )
+
         try:
             active = _pipeline_for_request(req.corpus_id, req.k)
         except KeyError:
