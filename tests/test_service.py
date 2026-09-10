@@ -119,6 +119,77 @@ def test_answer_abstention_is_a_successful_response(tmp_path):
     assert body["is_trustworthy"] is False
 
 
+# --------------------------------------------------------------------- GET /traces
+
+
+def test_traces_reports_stats_and_traces_after_a_request(tmp_path):
+    client = _client(
+        tmp_path,
+        generator=StubGenerator(text="Photosynthesis converts sunlight into chemical energy."),
+        embed_model="fake-embed-v1", retrieval_gate=-2.0, abstain_threshold=0.1,
+    )
+    resp = client.post("/answer", json={"question": "How does photosynthesis work?"})
+    assert resp.status_code == 200
+
+    body = client.get("/traces").json()
+    assert set(body.keys()) == {"stats", "traces"}
+    assert body["stats"]["count"] == 1
+    assert body["stats"]["abstention_rate"] == 0.0
+    assert body["stats"]["mean_trust"] is not None
+    assert len(body["traces"]) == 1
+    assert body["traces"][0]["abstained"] is False
+    assert "stages" in body["traces"][0]
+    assert "total_ms" in body["traces"][0]
+
+
+def test_traces_records_an_abstention_as_an_outcome_not_a_failure(tmp_path):
+    # retrieval_gate above the maximum possible cosine similarity (1.0)
+    # guarantees the pre-generation gate fires, same technique as
+    # test_answer_abstention_is_a_successful_response above.
+    client = _client(tmp_path, retrieval_gate=1.5)
+    resp = client.post("/answer", json={"question": "Anything?"})
+    assert resp.status_code == 200
+
+    body = client.get("/traces").json()
+    assert body["stats"]["count"] == 1
+    assert body["stats"]["abstention_rate"] == 1.0
+    # An abstention's trust is undefined (see trace.py), not a measured 0.0 --
+    # it must not be counted into mean_trust.
+    assert body["stats"]["mean_trust"] is None
+    assert body["traces"][0]["abstained"] is True
+    assert body["traces"][0]["trust_geometric"] is None
+
+
+def test_traces_respects_the_limit_query_param(tmp_path):
+    client = _client(
+        tmp_path,
+        generator=StubGenerator(text="Photosynthesis converts sunlight into chemical energy."),
+        embed_model="fake-embed-v1", retrieval_gate=-2.0, abstain_threshold=0.1,
+    )
+    for _ in range(3):
+        client.post("/answer", json={"question": "How does photosynthesis work?"})
+
+    body = client.get("/traces?limit=2").json()
+    assert body["stats"]["count"] == 3  # stats cover the whole buffer, not just the returned page
+    assert len(body["traces"]) == 2
+
+
+def test_traces_never_exposes_the_raw_question_text(tmp_path):
+    secret_question = "Does the merger agreement cover Example Widgets Inc specifically?"
+    client = _client(
+        tmp_path,
+        generator=StubGenerator(text="Photosynthesis converts sunlight into chemical energy."),
+        embed_model="fake-embed-v1", retrieval_gate=-2.0, abstain_threshold=0.1,
+    )
+    resp = client.post("/answer", json={"question": secret_question})
+    assert resp.status_code == 200
+
+    traces_resp = client.get("/traces")
+    assert secret_question not in traces_resp.text
+    assert "Example Widgets" not in traces_resp.text
+    assert "merger" not in traces_resp.text
+
+
 def test_answer_unreachable_generator_returns_503(tmp_path):
     client = _client(
         tmp_path,

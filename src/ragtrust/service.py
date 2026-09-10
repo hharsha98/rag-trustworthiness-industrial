@@ -28,6 +28,7 @@ from .generation.base import GenerationError
 from .ingest.validate import UploadRejected, max_upload_bytes
 from .pipeline import RAGTrustPipeline
 from .ratelimit import SlidingWindowLimiter, client_key
+from .trace import Trace, TraceBuffer, hash_question
 
 logger = logging.getLogger(__name__)
 
@@ -137,6 +138,12 @@ def create_app(index_dir: str, config: Config = None, generator: Any = None) -> 
     # the one path the hardened systemd unit grants write access to.
     upload_root = os.environ.get("RAGTRUST_UPLOAD_DIR") or str(_REPO_ROOT / "var" / "corpora")
     app.state.corpus_store = CorpusStore(upload_root)
+
+    # In-memory ring buffer of recent /answer requests (trace.py) -- read via
+    # GET /traces below. Capacity read once at app-creation time, same rationale
+    # as the upload rate-limit envs just below: a single process's policy stays
+    # stable for its lifetime rather than changing underfoot mid-run.
+    app.state.traces = TraceBuffer(capacity=int(os.environ.get("RAGTRUST_TRACE_CAPACITY", "100")))
 
     # --- Upload abuse protection. The service is about to be exposed publicly
     # with no authentication, and POST /corpora both writes to disk and spends
@@ -262,9 +269,51 @@ def create_app(index_dir: str, config: Config = None, generator: Any = None) -> 
             )
         latency_ms = (time.perf_counter() - start) * 1000.0
 
+        # Record a trace for EVERY successful call, abstentions included -- an
+        # abstention is a correct decline, not a failure, and is exactly the kind
+        # of outcome an operator watching /traces needs to see the rate of (e.g.
+        # "abstention_rate just jumped" is a real signal; only recording answered
+        # requests would hide it). Nothing raised above this point reaches here,
+        # so a GenerationError/ValueError (service mis-set-up or backend down)
+        # never gets traced as if it were an ordinary outcome.
+        trace = Trace(
+            question_hash=hash_question(req.question),
+            corpus_id=req.corpus_id,
+            abstained=result.abstained,
+            # None, not the pipeline's fixed 0.0 placeholder, when abstained --
+            # `_declined` (pipeline.py) sets trust to 0.0 because AnswerResult.trust
+            # is a non-Optional dict, not because 0.0 was measured. Recording that
+            # placeholder here would make mean_trust (TraceBuffer.stats) look like
+            # grounding got worse whenever the service is just abstaining more.
+            trust_geometric=(None if result.abstained else result.trust.get("geometric")),
+            stages=list(result.stage_timings),
+            total_ms=latency_ms,
+        )
+        app.state.traces.add(trace)
+        # Structured JSONL at INFO, one line per request: exactly `trace.to_dict()`
+        # (question hash, corpus_id, abstained, trust, stage timings, total ms) --
+        # never the question text, never a token. See trace.py's Trace.question_hash
+        # docstring for why the hash-not-text rule exists; this log line is the same
+        # disclosure risk in a different place (log files usually outlive and are
+        # read by more people than the request that produced them) and must honour
+        # the same rule.
+        logger.info(json.dumps(trace.to_dict()))
+
         payload = result.to_dict()
         payload["latency_ms"] = round(latency_ms, 2)
         return payload
+
+    @app.get("/traces")
+    def traces(limit: int = 20) -> dict:
+        """Recent /answer requests plus aggregate stats, for an operator watching
+        the service -- registered before the StaticFiles mount below like every
+        other API route in this module (see the comment on that mount for why
+        registration order matters here). Never exposes question text: `Trace`
+        stores only a hash (trace.py), and `to_dict()` never reconstructs it."""
+        return {
+            "stats": app.state.traces.stats(),
+            "traces": [t.to_dict() for t in app.state.traces.recent(limit)],
+        }
 
     @app.get("/api/examples")
     def examples() -> list:

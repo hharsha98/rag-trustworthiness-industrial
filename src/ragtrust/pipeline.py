@@ -11,6 +11,7 @@ generation, and a grounding gate after it.
 from __future__ import annotations
 
 import json
+import time
 import warnings
 from dataclasses import dataclass, field, replace
 from pathlib import Path
@@ -26,6 +27,7 @@ from .metrics.conciseness import conciseness
 from .metrics.faithfulness import FaithfulnessResult, faithfulness
 from .metrics.relevance import answer_relevance, context_relevance, max_context_similarity
 from .retrieval.index import Retriever
+from .trace import StageTiming
 
 CORPUS_SUFFIXES = (".pdf", ".md", ".txt")
 
@@ -44,6 +46,13 @@ class AnswerResult:
     abstain_reason: str = None
     trust: dict = field(default_factory=dict)
     sources: dict = field(default_factory=dict)
+    # Per-stage wall-clock timings from `answer`/`answer_with` (retrieve, gate,
+    # generate, decompose, entail, score -- whichever ran before an abstention
+    # gate cut the rest short, or all six on a full answer). This is what makes
+    # dashboard/index.html's `.steps` row -- which already lists and animates
+    # exactly these six stage names -- reflect what the pipeline actually spent
+    # time on, rather than a fixed-duration animation with no data behind it.
+    stage_timings: list = field(default_factory=list)
 
     @property
     def is_trustworthy(self) -> bool:
@@ -62,6 +71,7 @@ class AnswerResult:
             "claims": self.claims,
             "citations": {str(k): v for k, v in self.citations.items()},
             "per_claim_support": list(self.faithfulness.per_claim),
+            "stage_timings": [{"stage": s.stage, "ms": round(s.ms, 3)} for s in self.stage_timings],
             "passages": [
                 {"rank": i + 1,
                  "id": getattr(p, "id", None),
@@ -330,8 +340,19 @@ class RAGTrustPipeline:
         if not self.passages_text:
             raise ValueError("Nothing indexed. Call index_corpus/index_dir/load first.")
 
+        # Timed separately from answer_with's own stages, not folded into a shared
+        # loop there, because answer_with is also called directly by
+        # agentic.py::answer_iterative with a pool the CALLER already assembled
+        # from several retrieval rounds -- there is no single retriever.search()
+        # call to time on that path, so "retrieve" only appears for this
+        # single-shot entrypoint that owns it.
+        retrieve_start = time.perf_counter()
         retrieved = self.retriever.search(query, self.config.k)
-        return self.answer_with(query, retrieved)
+        retrieve_ms = (time.perf_counter() - retrieve_start) * 1000.0
+
+        result = self.answer_with(query, retrieved)
+        result.stage_timings.insert(0, StageTiming(stage="retrieve", ms=retrieve_ms))
+        return result
 
     def answer_with(self, query: str, retrieved: list) -> AnswerResult:
         """Score and answer `query` against a passage pool the CALLER assembled,
@@ -388,18 +409,35 @@ class RAGTrustPipeline:
         # retrieval mode -- and with RRF it rejects everything, because no RRF score can
         # reach 0.25. Asking "is anything here semantically about the query?" is a cosine
         # question, so the gate asks it in cosine space regardless of how ranking happened.
+        # Stage timings collected as the method proceeds, not restructured around --
+        # each stage below wraps an already-existing step in a perf_counter pair and
+        # appends one StageTiming; an abstention gate firing partway through simply
+        # means the list handed to `_declined` stops at whichever stage ran last.
+        stage_timings = []
+
+        gate_start = time.perf_counter()
         top = max_context_similarity(query, passage_texts, self.embedder)
+        stage_timings.append(StageTiming(stage="gate", ms=(time.perf_counter() - gate_start) * 1000.0))
         if top < self.config.retrieval_gate:
             return self._declined(
                 retrieved, sources,
                 f"No passage retrieved above the relevance gate "
                 f"(best similarity {top:.3f} < {self.config.retrieval_gate}).",
                 {"relevance": context_relevance(query, passage_texts, self.embedder)},
+                stage_timings=stage_timings,
             )
 
+        generate_start = time.perf_counter()
         generated = self._generator.generate(query, retrieved)
+        stage_timings.append(StageTiming(stage="generate", ms=(time.perf_counter() - generate_start) * 1000.0))
+
+        decompose_start = time.perf_counter()
         claims = split_claims(generated.text)
+        stage_timings.append(StageTiming(stage="decompose", ms=(time.perf_counter() - decompose_start) * 1000.0))
+
+        entail_start = time.perf_counter()
         f_result = faithfulness(claims, passage_texts, self.nli)
+        stage_timings.append(StageTiming(stage="entail", ms=(time.perf_counter() - entail_start) * 1000.0))
 
         # Gate 2 -- after generation. The corpus looked relevant, but nothing actually
         # supports what the model produced.
@@ -412,8 +450,10 @@ class RAGTrustPipeline:
                 {"faithfulness": f_result.score,
                  "contradiction_rate": f_result.contradiction_rate},
                 faithfulness_result=f_result,
+                stage_timings=stage_timings,
             )
 
+        score_start = time.perf_counter()
         attr = attribution(claims, generated.citations, passage_texts, self.nli,
                            tau=self.config.support_threshold)
 
@@ -460,14 +500,17 @@ class RAGTrustPipeline:
             "geometric": aggregate_geometric(scored, self.config.weights),
             "weights": dict(self.config.weights),
         }
+        stage_timings.append(StageTiming(stage="score", ms=(time.perf_counter() - score_start) * 1000.0))
 
         return AnswerResult(
             answer=generated.text, passages=retrieved, claims=claims,
             citations=generated.citations, metrics=metrics, abstained=False,
             faithfulness=f_result, trust=trust, sources=sources,
+            stage_timings=stage_timings,
         )
 
-    def _declined(self, retrieved, sources, reason, metrics, faithfulness_result=None):
+    def _declined(self, retrieved, sources, reason, metrics, faithfulness_result=None,
+                  stage_timings=None):
         empty = faithfulness_result or FaithfulnessResult(
             score=0.0, per_claim=[], contradiction_rate=0.0, support_index=[])
         return AnswerResult(
@@ -476,4 +519,10 @@ class RAGTrustPipeline:
             abstained=True, faithfulness=empty, abstain_reason=reason,
             trust={"arithmetic": 0.0, "geometric": 0.0, "weights": dict(self.config.weights)},
             sources=sources,
+            # `stage_timings or []` rather than a mutable-default parameter (the
+            # classic Python footgun: a `[]` default would be the SAME list object
+            # shared across every call site that omits the argument). Every real
+            # caller in this file passes its own list; `None` only shows up if
+            # `_declined` is ever called directly (e.g. from a test) without one.
+            stage_timings=stage_timings or [],
         )

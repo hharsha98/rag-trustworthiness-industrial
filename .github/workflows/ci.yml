@@ -21,3 +21,68 @@ jobs:
 
       - name: Run tests
         run: pytest -q
+
+  golden-regression:
+    # experiments/17_golden_regression.py answers 30 hand-curated questions
+    # against the bundled demo corpus and FAILS THE BUILD if abstention
+    # behaviour or grounding regresses past tolerance relative to the committed
+    # experiments/results/golden_baseline.json. It uses CachedGenerator, never
+    # Ollama, so no LLM server is involved.
+    #
+    # This job deliberately downloads and caches real embed/NLI weights, unlike
+    # the `tests` job above. That costs a few minutes on a cold cache and is the
+    # entire point: FakeEmbedder/FakeNLI cannot substitute here (see the
+    # script's module docstring -- bag-of-words similarity cannot separate
+    # in-corpus from out-of-corpus questions, so every case would take the same
+    # branch and the gate would assert nothing). A gate that skips whenever
+    # weights are missing is worse than no gate: it reports a green check while
+    # protecting nothing, and the regression it exists to catch would merge
+    # under a passing build. So the weights are cached and the gate runs for
+    # real.
+    #
+    # The script forces HF_HUB_OFFLINE=1 via setdefault, so after the warm-up
+    # step below it reads the cache and never touches the network mid-run --
+    # a surprise download inside a CI gate is its own kind of flakiness.
+    name: Golden-set regression gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install package (with dev/test extras)
+        run: pip install -e ".[dev]"
+
+      # Keyed on the exact model names from src/ragtrust/config.py. Changing
+      # either default there must change this key, or the job would silently
+      # restore weights for the wrong model and compare against a baseline that
+      # was produced by a different one.
+      - name: Cache model weights
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-msmarco-distilbert-base-v4-roberta-large-mnli-v1
+
+      - name: Warm model cache
+        env:
+          HF_HUB_OFFLINE: "0"
+          TRANSFORMERS_OFFLINE: "0"
+        run: |
+          python - <<'PY'
+          from sentence_transformers import SentenceTransformer
+          from transformers import AutoModelForSequenceClassification, AutoTokenizer
+          SentenceTransformer("sentence-transformers/msmarco-distilbert-base-v4")
+          AutoTokenizer.from_pretrained("roberta-large-mnli")
+          AutoModelForSequenceClassification.from_pretrained("roberta-large-mnli")
+          PY
+
+      - name: Run golden-set regression gate
+        env:
+          # The warm-up step above is responsible for the weights being present,
+          # so a load failure here is a broken cache step, not an environment the
+          # gate should politely skip in. Fail loudly instead of going green.
+          RAGTRUST_GOLDEN_REQUIRE_MODELS: "1"
+        run: python experiments/17_golden_regression.py

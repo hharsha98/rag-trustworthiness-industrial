@@ -1,0 +1,182 @@
+[
+  {
+    "question": "What is the role of self-supervised learning in robotics?",
+    "expect": "answer",
+    "class": "in_corpus",
+    "note": "Covered verbatim by the '## The Role of Self-Supervised Learning in Robotics' section."
+  },
+  {
+    "question": "How does deep reinforcement learning work in robotics?",
+    "expect": "answer",
+    "class": "in_corpus",
+    "note": "Covered by '## Deep Reinforcement Learning in Robotics'."
+  },
+  {
+    "question": "What are the advantages of using artificial neural networks in robotics?",
+    "expect": "answer",
+    "class": "in_corpus",
+    "note": "Covered by '## Artificial Neural Networks and Their Advantages in Robotics'."
+  },
+  {
+    "question": "How can sensor fusion improve robot performance?",
+    "expect": "answer",
+    "class": "in_corpus",
+    "note": "Covered by '## Sensor Fusion'."
+  },
+  {
+    "question": "What are the applications of machine learning in robotics?",
+    "expect": "answer",
+    "class": "in_corpus",
+    "note": "Covered by '## Applications of Machine Learning in Robotics'."
+  },
+  {
+    "question": "Explain the concept of self-supervised depth estimation in robotics.",
+    "expect": "answer",
+    "class": "in_corpus",
+    "note": "Covered by '## Self-Supervised Depth Estimation'."
+  },
+  {
+    "question": "What is the function of convolutional layers in CNNs for vision?",
+    "expect": "answer",
+    "class": "in_corpus",
+    "note": "Covered by '## Convolutional Layers and Their Function in Vision'."
+  },
+  {
+    "question": "Describe the Markov Decision Process in reinforcement learning.",
+    "expect": "answer",
+    "class": "in_corpus",
+    "note": "Covered by '## The Markov Decision Process'."
+  },
+  {
+    "question": "How does an LSTM cell retain long-term dependencies?",
+    "expect": "answer",
+    "class": "in_corpus",
+    "note": "Covered by '## Recurrent Networks and LSTM Cells'."
+  },
+  {
+    "question": "What is the purpose of max-pooling layers in CNNs?",
+    "expect": "answer",
+    "class": "in_corpus",
+    "note": "Covered by '## Max-Pooling Layers and Their Purpose'."
+  },
+  {
+    "question": "What is the capital of France?",
+    "expect": "abstain",
+    "class": "out_of_corpus",
+    "note": "Geography trivia; no relation to robotics/ML."
+  },
+  {
+    "question": "Who wrote the play Hamlet?",
+    "expect": "abstain",
+    "class": "out_of_corpus",
+    "note": "Literature trivia; no relation to robotics/ML."
+  },
+  {
+    "question": "What is the chemical symbol for water?",
+    "expect": "abstain",
+    "class": "out_of_corpus",
+    "note": "Chemistry trivia; no relation to robotics/ML."
+  },
+  {
+    "question": "How many continents are there on Earth?",
+    "expect": "abstain",
+    "class": "out_of_corpus",
+    "note": "Geography trivia; no relation to robotics/ML."
+  },
+  {
+    "question": "When did World War II end?",
+    "expect": "abstain",
+    "class": "out_of_corpus",
+    "note": "History trivia; no relation to robotics/ML."
+  },
+  {
+    "question": "What is the powerhouse of the cell?",
+    "expect": "abstain",
+    "class": "out_of_corpus",
+    "note": "Biology trivia; no relation to robotics/ML."
+  },
+  {
+    "question": "Who painted the Mona Lisa?",
+    "expect": "abstain",
+    "class": "out_of_corpus",
+    "note": "Art trivia; no relation to robotics/ML."
+  },
+  {
+    "question": "What is the speed of light in vacuum?",
+    "expect": "abstain",
+    "class": "out_of_corpus",
+    "note": "Physics trivia; no relation to robotics/ML."
+  },
+  {
+    "question": "What is the tallest mountain on Earth?",
+    "expect": "abstain",
+    "class": "out_of_corpus",
+    "note": "Geography trivia; no relation to robotics/ML."
+  },
+  {
+    "question": "Which element has atomic number 6?",
+    "expect": "abstain",
+    "class": "out_of_corpus",
+    "note": "Chemistry trivia; no relation to robotics/ML."
+  },
+  {
+    "question": "What is the SLAM algorithm and how does it build a map while localizing?",
+    "expect": "abstain",
+    "class": "adversarial",
+    "note": "Corpus mentions localisation/mapping only in passing (Sensor Fusion section); SLAM itself is never explained."
+  },
+  {
+    "question": "What is dropout regularization and why does it prevent overfitting?",
+    "expect": "abstain",
+    "class": "adversarial",
+    "note": "A standard neural-net regularization technique; never mentioned anywhere in the corpus."
+  },
+  {
+    "question": "What is a support vector machine and how does it find a separating hyperplane?",
+    "expect": "abstain",
+    "class": "adversarial",
+    "note": "A classical ML method outside the corpus's three paradigms (supervised/unsupervised/RL) discussion; never covered."
+  },
+  {
+    "question": "How does principal component analysis reduce dimensionality?",
+    "expect": "abstain",
+    "class": "adversarial",
+    "note": "A classical dimensionality-reduction method; not mentioned in the corpus."
+  },
+  {
+    "question": "What is the k-nearest neighbors algorithm?",
+    "expect": "abstain",
+    "class": "adversarial",
+    "note": "A classical classifier; not mentioned in the corpus."
+  },
+  {
+    "question": "What is the naive Bayes classifier and what independence assumption does it make?",
+    "expect": "abstain",
+    "class": "adversarial",
+    "note": "A classical probabilistic classifier; not mentioned in the corpus."
+  },
+  {
+    "question": "What is early stopping and how does it prevent overfitting during training?",
+    "expect": "abstain",
+    "class": "adversarial",
+    "note": "A training-time regularization technique; never discussed (the corpus discusses training paradigms, not training tricks)."
+  },
+  {
+    "question": "What is Xavier weight initialization and why does it matter?",
+    "expect": "abstain",
+    "class": "adversarial",
+    "note": "A weight-initialization scheme; never mentioned (the corpus describes gradient descent training only at a high level)."
+  },
+  {
+    "question": "How does k-means clustering partition data into groups?",
+    "expect": "abstain",
+    "class": "adversarial",
+    "note": "The corpus mentions clustering once, in passing, as an example of unsupervised learning, but never explains an algorithm for it."
+  },
+  {
+    "question": "What is the difference between L1 and L2 regularization?",
+    "expect": "abstain",
+    "class": "adversarial",
+    "note": "Regularization mechanics are never discussed; the corpus's only nod to overfitting is CNN/max-pooling's translation invariance, unrelated to L1/L2."
+  }
+]

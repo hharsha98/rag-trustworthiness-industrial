@@ -7,6 +7,11 @@ __pycache__/
 data/index/
 *.faiss
 
+# Index built on demand by experiments/17_golden_regression.py. Rebuilt from the
+# bundled corpus in seconds; committing a binary index would also make the gate's
+# result depend on a stale artifact rather than on the corpus in the tree.
+experiments/results/golden_index/
+
 # Uploaded corpora (src/ragtrust/corpora.py). This is the default RAGTRUST_UPLOAD_DIR
 # for a local run; deployments point it at /var/lib/ragtrust/corpora instead. Contains
 # whatever documents were uploaded to the running service -- never commit those.

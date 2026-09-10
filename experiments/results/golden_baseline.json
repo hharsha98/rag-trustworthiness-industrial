@@ -1,0 +1,7 @@
+{
+  "in_corpus_pass_rate": 1.0,
+  "out_of_corpus_pass_rate": 1.0,
+  "adversarial_pass_rate": 1.0,
+  "overall_pass_rate": 1.0,
+  "mean_geometric_trust": 0.34942507153540897
+}
