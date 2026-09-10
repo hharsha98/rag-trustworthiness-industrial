@@ -1,0 +1,238 @@
+{
+  "_method": "Binary nDCG@10, Recall@10, MRR@10 (SciFact relevance is binary) over 300 queries from BeIR/scifact-qrels/test.tsv, against a 5183-document BeIR/scifact corpus. Bootstrap (95% CI, 10000 resamples, seed=0): 'ci' is a per-arm CI on the raw mean (resample queries); 'vs_hybrid_ci' is a PAIRED bootstrap CI on the difference from the 'hybrid' arm (resample query pairs), since the headline question is the contextual effect with retrieval mode held constant, not the hybrid-vs-dense effect experiment 08 already answered. A 'vs_hybrid_ci' that contains 0 is reported as NOT an improvement. CHUNKED-CORPUS MODE: the corpus was split into 22878 chunks (3 sentences per chunk, 1-sentence overlap between neighbours) and every arm retrieves and ranks chunks, over-fetching 40 (>= 4*k) candidates per query -- but every metric above is DOCUMENT-LEVEL: each retrieved chunk is mapped back to its parent document id and collapsed to unique documents (best-ranked chunk kept) before nDCG/Recall/MRR are computed, so these numbers are directly comparable to an unchunked run's, both being document-level rankings judged by the identical document-level qrels.",
+  "caveat": "This run chunked the corpus first (module docstring: 'the fairer test'), so each chunk was contextualised against its REAL parent document -- the actual mechanism Contextual Retrieval is designed around, not the self-referential blurb the unchunked path is limited to. The unchunked weak-case caveat (single, self-contained abstracts with no larger parent document) does not apply as stated to this run; it is retained in the unchunked JSON output for contrast.",
+  "benchmark": "BeIR/scifact (third-party corpus, queries, and judgments)",
+  "n_queries": 300,
+  "n_corpus": 5183,
+  "n_corpus_full": 5183,
+  "truncated_smoke_run": false,
+  "max_docs_arg": null,
+  "k": 10,
+  "chunked_mode": true,
+  "chunk_sentences": 3,
+  "n_chunks": 22878,
+  "chunk_search_depth": 40,
+  "rerank_candidates": 40,
+  "embed_model": "sentence-transformers/msmarco-distilbert-base-v4",
+  "rerank_model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+  "contextual_model": "llama3.2:3b",
+  "n_llm_calls_this_run": 0,
+  "n_cache_hits_this_run": 22878,
+  "baseline_for_diff": "hybrid",
+  "headline_comparison": "hybrid+contextual vs hybrid",
+  "arms": {
+    "dense": {
+      "ndcg": {
+        "mean": 0.5489830080101279,
+        "ci": [
+          0.4992731282300584,
+          0.597396231522464
+        ],
+        "vs_hybrid_diff_mean": -0.08541772013265038,
+        "vs_hybrid_ci": [
+          -0.11546355421667759,
+          -0.05572884776360914
+        ],
+        "ci_excludes_zero": true,
+        "is_improvement": false,
+        "is_degradation": true
+      },
+      "recall": {
+        "mean": 0.6607777777777777,
+        "ci": [
+          0.6081083333333334,
+          0.7110000000000001
+        ],
+        "vs_hybrid_diff_mean": -0.12144444444444445,
+        "vs_hybrid_ci": [
+          -0.1663888888888889,
+          -0.07805000000000008
+        ],
+        "ci_excludes_zero": true,
+        "is_improvement": false,
+        "is_degradation": true
+      },
+      "mrr": {
+        "mean": 0.5240939153439154,
+        "ci": [
+          0.4719544973544973,
+          0.5750881613756613
+        ],
+        "vs_hybrid_diff_mean": -0.06983068783068783,
+        "vs_hybrid_ci": [
+          -0.10168528439153438,
+          -0.037818750000000005
+        ],
+        "ci_excludes_zero": true,
+        "is_improvement": false,
+        "is_degradation": true
+      }
+    },
+    "hybrid": {
+      "ndcg": {
+        "mean": 0.6344007281427783,
+        "ci": [
+          0.5880559504105555,
+          0.6792939381177734
+        ]
+      },
+      "recall": {
+        "mean": 0.7822222222222223,
+        "ci": [
+          0.7342222222222222,
+          0.8273388888888887
+        ]
+      },
+      "mrr": {
+        "mean": 0.5939246031746032,
+        "ci": [
+          0.5443053240740741,
+          0.6413635251322751
+        ]
+      }
+    },
+    "hybrid+rerank": {
+      "ndcg": {
+        "mean": 0.6903567974068038,
+        "ci": [
+          0.6455371794094696,
+          0.733687525576349
+        ],
+        "vs_hybrid_diff_mean": 0.05595606926402548,
+        "vs_hybrid_ci": [
+          0.030412507191330648,
+          0.08186717009455402
+        ],
+        "ci_excludes_zero": true,
+        "is_improvement": true,
+        "is_degradation": false
+      },
+      "recall": {
+        "mean": 0.823888888888889,
+        "ci": [
+          0.78,
+          0.8656666666666666
+        ],
+        "vs_hybrid_diff_mean": 0.041666666666666664,
+        "vs_hybrid_ci": [
+          0.015,
+          0.0691874999999997
+        ],
+        "ci_excludes_zero": true,
+        "is_improvement": true,
+        "is_degradation": false
+      },
+      "mrr": {
+        "mean": 0.6546335978835979,
+        "ci": [
+          0.6062499669312169,
+          0.7010850529100529
+        ],
+        "vs_hybrid_diff_mean": 0.06070899470899472,
+        "vs_hybrid_ci": [
+          0.02923670634920635,
+          0.09263501984126984
+        ],
+        "ci_excludes_zero": true,
+        "is_improvement": true,
+        "is_degradation": false
+      }
+    },
+    "hybrid+contextual": {
+      "ndcg": {
+        "mean": 0.6498940109928973,
+        "ci": [
+          0.603393518137639,
+          0.6944619160504713
+        ],
+        "vs_hybrid_diff_mean": 0.015493282850119,
+        "vs_hybrid_ci": [
+          -0.0049370689781301,
+          0.03607822450841915
+        ],
+        "ci_excludes_zero": false,
+        "is_improvement": false,
+        "is_degradation": false
+      },
+      "recall": {
+        "mean": 0.7920555555555556,
+        "ci": [
+          0.7456111111111111,
+          0.8353347222222223
+        ],
+        "vs_hybrid_diff_mean": 0.009833333333333335,
+        "vs_hybrid_ci": [
+          -0.015,
+          0.034666666666666665
+        ],
+        "ci_excludes_zero": false,
+        "is_improvement": false,
+        "is_degradation": false
+      },
+      "mrr": {
+        "mean": 0.6130780423280423,
+        "ci": [
+          0.5644855489417989,
+          0.6606729828042327
+        ],
+        "vs_hybrid_diff_mean": 0.01915343915343915,
+        "vs_hybrid_ci": [
+          -0.0059893187830687734,
+          0.044352281746031744
+        ],
+        "ci_excludes_zero": false,
+        "is_improvement": false,
+        "is_degradation": false
+      }
+    },
+    "hybrid+contextual+rerank": {
+      "ndcg": {
+        "mean": 0.7081798627898437,
+        "ci": [
+          0.6628931132652971,
+          0.7514516354175851
+        ],
+        "vs_hybrid_diff_mean": 0.07377913464706548,
+        "vs_hybrid_ci": [
+          0.04662563522214087,
+          0.10184681408440739
+        ],
+        "ci_excludes_zero": true,
+        "is_improvement": true,
+        "is_degradation": false
+      },
+      "recall": {
+        "mean": 0.8152222222222222,
+        "ci": [
+          0.769886111111111,
+          0.8575555555555555
+        ],
+        "vs_hybrid_diff_mean": 0.033,
+        "vs_hybrid_ci": [
+          0.0038333333333333344,
+          0.06333333333333334
+        ],
+        "ci_excludes_zero": true,
+        "is_improvement": true,
+        "is_degradation": false
+      },
+      "mrr": {
+        "mean": 0.6813320105820105,
+        "ci": [
+          0.6333741071428571,
+          0.7276428571428571
+        ],
+        "vs_hybrid_diff_mean": 0.08740740740740742,
+        "vs_hybrid_ci": [
+          0.05448779761904762,
+          0.1214261904761905
+        ],
+        "ci_excludes_zero": true,
+        "is_improvement": true,
+        "is_degradation": false
+      }
+    }
+  },
+  "verdict": "DOES NOT MEASURABLY CHANGE",
+  "verdict_line": "[CHUNKED-CORPUS MODE: 5183 documents -> 22878 chunks (chunk_sentences=3); metrics are DOCUMENT-level after collapsing chunks] Contextual retrieval **does not measurably change** nDCG@10 on this benchmark: the paired 95% CI on hybrid+contextual vs hybrid is [-0.005, +0.036], which includes zero. A CI that includes zero is not an improvement -- this difference is not distinguishable from query-sampling noise at this sample size."
+}
