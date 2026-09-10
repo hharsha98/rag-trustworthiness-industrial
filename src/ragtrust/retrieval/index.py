@@ -4,9 +4,47 @@
 index's ranking geometry matches cosine scoring used everywhere else in this
 package.
 """
+import os
 from dataclasses import dataclass
 
 import numpy as np
+
+_FAISS_THREADS_SET = False
+
+
+def import_faiss():
+    """Import faiss with its OpenMP thread pool capped, and return the module.
+
+    torch, sklearn and faiss each vendor their own copy of libomp. With more
+    than one loaded into a process, FAISS's OpenMP parallel regions can
+    segfault -- SIGSEGV with no Python traceback, because the crash happens in
+    a native thread that has no Python frames to print. It is size-dependent,
+    since FAISS only spawns those threads once an index is large enough:
+    reproducible at 22,878 vectors while absent at 5,183.
+
+    This matters beyond the benchmarks. `POST /corpora` indexes an arbitrary
+    uploaded document, so without the cap a large enough upload can take the
+    whole service down -- not as a handled error, as an instant process death.
+
+    The cost is small: every index here is an `IndexFlat*`, whose add and
+    search are brute-force and bound by memory bandwidth rather than by thread
+    count, and the deployed box has 2 vCPUs. Set RAGTRUST_FAISS_THREADS to
+    profile a different value.
+    """
+    global _FAISS_THREADS_SET
+    import faiss
+
+    if not _FAISS_THREADS_SET:
+        try:
+            faiss.omp_set_num_threads(
+                int(os.environ.get("RAGTRUST_FAISS_THREADS", "1")))
+        except (AttributeError, ValueError):
+            # A faiss built without OpenMP exposes no omp_set_num_threads, and a
+            # malformed env value must not stop the service from starting. In
+            # both cases the library's default thread count stands.
+            pass
+        _FAISS_THREADS_SET = True
+    return faiss
 
 
 @dataclass
@@ -58,7 +96,7 @@ class Retriever:
         return embeddings
 
     def build(self, passages: list):
-        import faiss
+        faiss = import_faiss()
 
         self.passages = list(passages)
         embeddings = self._encode(self.passages)

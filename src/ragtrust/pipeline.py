@@ -26,7 +26,7 @@ from .metrics.claims import split_claims
 from .metrics.conciseness import conciseness
 from .metrics.faithfulness import FaithfulnessResult, faithfulness
 from .metrics.relevance import answer_relevance, context_relevance, max_context_similarity
-from .retrieval.index import Retriever
+from .retrieval.index import Retriever, import_faiss
 from .trace import StageTiming
 
 CORPUS_SUFFIXES = (".pdf", ".md", ".txt")
@@ -273,7 +273,7 @@ class RAGTrustPipeline:
 
     def save(self, directory: str) -> "RAGTrustPipeline":
         """Persist the index so a restart does not re-embed the whole corpus."""
-        import faiss
+        faiss = import_faiss()
 
         out = Path(directory)
         out.mkdir(parents=True, exist_ok=True)
@@ -295,7 +295,7 @@ class RAGTrustPipeline:
         return self
 
     def load(self, directory: str) -> "RAGTrustPipeline":
-        import faiss
+        faiss = import_faiss()
 
         src = Path(directory)
         payload = json.loads((src / "passages.json").read_text())
