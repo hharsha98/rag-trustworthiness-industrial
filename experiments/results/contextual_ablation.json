@@ -1,0 +1,234 @@
+{
+  "_method": "Binary nDCG@10, Recall@10, MRR@10 (SciFact relevance is binary) over 300 queries from BeIR/scifact-qrels/test.tsv, against a 5183-document BeIR/scifact corpus. Bootstrap (95% CI, 10000 resamples, seed=0): 'ci' is a per-arm CI on the raw mean (resample queries); 'vs_hybrid_ci' is a PAIRED bootstrap CI on the difference from the 'hybrid' arm (resample query pairs), since the headline question is the contextual effect with retrieval mode held constant, not the hybrid-vs-dense effect experiment 08 already answered. A 'vs_hybrid_ci' that contains 0 is reported as NOT an improvement.",
+  "caveat": "SciFact documents are single, self-contained abstracts with no larger parent document to draw context from -- the honest weak case for Contextual Retrieval. The situating blurb places each abstract only within itself. This is a lower bound on the technique's headroom on documents shaped like this, not a fair test of its intended best case (a chunk drawn from a much larger document).",
+  "benchmark": "BeIR/scifact (third-party corpus, queries, and judgments)",
+  "n_queries": 300,
+  "n_corpus": 5183,
+  "n_corpus_full": 5183,
+  "truncated_smoke_run": false,
+  "max_docs_arg": null,
+  "k": 10,
+  "rerank_candidates": 20,
+  "embed_model": "sentence-transformers/msmarco-distilbert-base-v4",
+  "rerank_model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+  "contextual_model": "llama3.2:3b",
+  "n_llm_calls_this_run": 0,
+  "n_cache_hits_this_run": 5183,
+  "baseline_for_diff": "hybrid",
+  "headline_comparison": "hybrid+contextual vs hybrid",
+  "arms": {
+    "dense": {
+      "ndcg": {
+        "mean": 0.5293425563190094,
+        "ci": [
+          0.48038591259919733,
+          0.5783984727362629
+        ],
+        "vs_hybrid_diff_mean": -0.1148326672114361,
+        "vs_hybrid_ci": [
+          -0.1429618969047914,
+          -0.08712006444010678
+        ],
+        "ci_excludes_zero": true,
+        "is_improvement": false,
+        "is_degradation": true
+      },
+      "recall": {
+        "mean": 0.6457777777777778,
+        "ci": [
+          0.5929986111111111,
+          0.6988347222222222
+        ],
+        "vs_hybrid_diff_mean": -0.16461111111111112,
+        "vs_hybrid_ci": [
+          -0.21027777777777779,
+          -0.12027777777777779
+        ],
+        "ci_excludes_zero": true,
+        "is_improvement": false,
+        "is_degradation": true
+      },
+      "mrr": {
+        "mean": 0.5009246031746032,
+        "ci": [
+          0.4499377645502646,
+          0.5522390542328043
+        ],
+        "vs_hybrid_diff_mean": -0.10001455026455026,
+        "vs_hybrid_ci": [
+          -0.13077156084656086,
+          -0.07063148148148148
+        ],
+        "ci_excludes_zero": true,
+        "is_improvement": false,
+        "is_degradation": true
+      }
+    },
+    "hybrid": {
+      "ndcg": {
+        "mean": 0.6441752235304457,
+        "ci": [
+          0.599046718782031,
+          0.687334916041608
+        ]
+      },
+      "recall": {
+        "mean": 0.8103888888888889,
+        "ci": [
+          0.766,
+          0.8523888888888888
+        ]
+      },
+      "mrr": {
+        "mean": 0.6009391534391534,
+        "ci": [
+          0.5518580026455027,
+          0.6491539021164021
+        ]
+      }
+    },
+    "hybrid+rerank": {
+      "ndcg": {
+        "mean": 0.6874445234050829,
+        "ci": [
+          0.6420977580006832,
+          0.7314550492132047
+        ],
+        "vs_hybrid_diff_mean": 0.04326929987463738,
+        "vs_hybrid_ci": [
+          0.016594747534970932,
+          0.07095722418543325
+        ],
+        "ci_excludes_zero": true,
+        "is_improvement": true,
+        "is_degradation": false
+      },
+      "recall": {
+        "mean": 0.8141111111111111,
+        "ci": [
+          0.769775,
+          0.8556722222222223
+        ],
+        "vs_hybrid_diff_mean": 0.0037222222222222223,
+        "vs_hybrid_ci": [
+          -0.0212236111111111,
+          0.028999999999999998
+        ],
+        "ci_excludes_zero": false,
+        "is_improvement": false,
+        "is_degradation": false
+      },
+      "mrr": {
+        "mean": 0.656973544973545,
+        "ci": [
+          0.608036044973545,
+          0.703969675925926
+        ],
+        "vs_hybrid_diff_mean": 0.05603439153439155,
+        "vs_hybrid_ci": [
+          0.023093816137566135,
+          0.0906278439153439
+        ],
+        "ci_excludes_zero": true,
+        "is_improvement": true,
+        "is_degradation": false
+      }
+    },
+    "hybrid+contextual": {
+      "ndcg": {
+        "mean": 0.6242078314991845,
+        "ci": [
+          0.5783965927470719,
+          0.6688240688316729
+        ],
+        "vs_hybrid_diff_mean": -0.01996739203126113,
+        "vs_hybrid_ci": [
+          -0.03736836452429391,
+          -0.003542156184549351
+        ],
+        "ci_excludes_zero": true,
+        "is_improvement": false,
+        "is_degradation": true
+      },
+      "recall": {
+        "mean": 0.7860555555555555,
+        "ci": [
+          0.7397763888888889,
+          0.8301666666666667
+        ],
+        "vs_hybrid_diff_mean": -0.024333333333333332,
+        "vs_hybrid_ci": [
+          -0.04833333333333333,
+          -0.0020000000000000005
+        ],
+        "ci_excludes_zero": true,
+        "is_improvement": false,
+        "is_degradation": true
+      },
+      "mrr": {
+        "mean": 0.5824298941798942,
+        "ci": [
+          0.5330725529100528,
+          0.6318241402116401
+        ],
+        "vs_hybrid_diff_mean": -0.018509259259259257,
+        "vs_hybrid_ci": [
+          -0.03893204365079365,
+          0.0012857473544973538
+        ],
+        "ci_excludes_zero": false,
+        "is_improvement": false,
+        "is_degradation": false
+      }
+    },
+    "hybrid+contextual+rerank": {
+      "ndcg": {
+        "mean": 0.6823593937198854,
+        "ci": [
+          0.6372529013561945,
+          0.726703617398337
+        ],
+        "vs_hybrid_diff_mean": 0.03818417018943975,
+        "vs_hybrid_ci": [
+          0.012226282834403869,
+          0.06538555141076643
+        ],
+        "ci_excludes_zero": true,
+        "is_improvement": true,
+        "is_degradation": false
+      },
+      "recall": {
+        "mean": 0.8084444444444444,
+        "ci": [
+          0.7636666666666666,
+          0.8512222222222222
+        ],
+        "vs_hybrid_diff_mean": -0.001944444444444445,
+        "vs_hybrid_ci": [
+          -0.026944444444444448,
+          0.023333333333333334
+        ],
+        "ci_excludes_zero": false,
+        "is_improvement": false,
+        "is_degradation": false
+      },
+      "mrr": {
+        "mean": 0.6523201058201059,
+        "ci": [
+          0.6033993716931216,
+          0.6997804563492063
+        ],
+        "vs_hybrid_diff_mean": 0.05138095238095239,
+        "vs_hybrid_ci": [
+          0.01888078703703704,
+          0.08516150793650794
+        ],
+        "ci_excludes_zero": true,
+        "is_improvement": true,
+        "is_degradation": false
+      }
+    }
+  },
+  "verdict": "DEGRADES",
+  "verdict_line": "Contextual retrieval **degrades** nDCG@10 on this benchmark: hybrid+contextual is worse than hybrid by -0.020 nDCG@10 (paired 95% CI [-0.037, -0.004]), which excludes zero on the negative side."
+}
