@@ -7,261 +7,334 @@
 <meta name="description" content="Ask a question against a private corpus and watch every trust metric resolve: grounding, citation accuracy, relevance, redundancy, and a non-compensatory trust score.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --void:#0a0c0f; --panel:#11151a; --panel-2:#161b21; --rule:#232b34;
-  --ink:#e8edf2; --dim:#8b96a3; --faint:#5a6472;
-  --live:#4ade80; --warn:#fbbf24; --fail:#f87171;
-  --beam:#38bdf8;
-  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
-  --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --bg:#08090b;  --s1:#0e1013;  --s2:#14171c;  --s3:#1a1e25;
+  --border:#1e232a;  --border-2:#2a313a;
+  --text:#f2f4f7;  --text-2:#9aa4b2;  --text-3:#7f8a97; /* spec's #6b7480 clears ~4.0:1 on --s1; this clears ~4.8:1 */
+  --accent:#4da3ff;  --accent-dim:rgba(77,163,255,.12);  --accent-ink:#031420;
+  --ok:#34d399;  --warn:#fbbf24;  --bad:#f87171;
+  --r-sm:6px; --r:10px; --r-lg:14px;
+  --font-ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --t:150ms cubic-bezier(.4,0,.2,1);
 }
 *{box-sizing:border-box}
 html,body{height:100%}
 body{
-  margin:0;background:var(--void);color:var(--ink);
-  font:15px/1.6 var(--sans);-webkit-font-smoothing:antialiased;
-  background-image:
-    radial-gradient(1100px 600px at 15% -10%, rgba(56,189,248,.07), transparent 60%),
-    radial-gradient(900px 500px at 95% 0%, rgba(74,222,128,.045), transparent 55%),
-    linear-gradient(var(--void), var(--void));
+  margin:0;background:var(--bg);color:var(--text);
+  font:400 15px/1.6 var(--font-ui);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
 }
-body::before{
-  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.45;
-  background-image:linear-gradient(rgba(255,255,255,.016) 1px,transparent 1px),
-                   linear-gradient(90deg,rgba(255,255,255,.016) 1px,transparent 1px);
-  background-size:52px 52px;
-  -webkit-mask-image:radial-gradient(ellipse at 50% 0%, #000 40%, transparent 85%);
-  mask-image:radial-gradient(ellipse at 50% 0%, #000 40%, transparent 85%);
+::selection{background:var(--accent-dim);color:var(--text)}
+.sr-only{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+a{color:inherit}
+:focus{outline:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:var(--r-sm)}
+.skip-link{
+  position:absolute;left:12px;top:-48px;z-index:100;background:var(--accent);color:var(--accent-ink);
+  padding:10px 14px;border-radius:var(--r-sm);font:600 13px var(--font-ui);text-decoration:none;
+  transition:top var(--t);
 }
-.shell{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:0 24px 72px}
+.skip-link:focus-visible{top:12px}
 
-header{padding:30px 0 22px;display:flex;align-items:flex-start;gap:22px;flex-wrap:wrap}
-.mark{display:flex;align-items:center;gap:13px}
-.mark svg{flex:none}
-h1{font-size:17px;letter-spacing:.02em;margin:0;font-weight:600}
-.tagline{color:var(--dim);font-size:13px;margin:2px 0 0;max-width:52ch}
-.status{margin-left:auto;display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+/* ============ top bar ============ */
+.topbar{
+  position:sticky;top:0;z-index:40;background:rgba(14,16,19,.88);
+  backdrop-filter:saturate(1.5) blur(10px);-webkit-backdrop-filter:saturate(1.5) blur(10px);
+  border-bottom:1px solid var(--border);
+}
+.topbar-inner{max-width:1280px;margin:0 auto;padding:10px 24px;min-height:56px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;flex:none;color:var(--text)}
+.brand-mark{flex:none;display:block}
+.brand-name{font-size:14px;font-weight:600;letter-spacing:-.01em}
+.status-cluster{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;row-gap:8px}
+@media (max-width:480px){
+  .status-cluster{margin-left:0;width:100%}
+}
 .chip{
-  font:500 11.5px/1 var(--mono);letter-spacing:.04em;text-transform:uppercase;
-  color:var(--dim);border:1px solid var(--rule);border-radius:999px;
-  padding:6px 11px;background:var(--panel);white-space:nowrap;
+  display:inline-flex;align-items:center;gap:6px;font:500 12px/1 var(--font-ui);color:var(--text-2);
+  border:1px solid var(--border);border-radius:999px;background:var(--s2);padding:7px 11px;
+  white-space:nowrap;
 }
-.chip b{color:var(--ink);font-weight:600}
-.dot{width:7px;height:7px;border-radius:50%;background:var(--faint);display:inline-block;margin-right:7px;vertical-align:1px}
-.dot.on{background:var(--live);box-shadow:0 0 0 3px rgba(74,222,128,.16)}
-.dot.off{background:var(--fail);box-shadow:0 0 0 3px rgba(248,113,113,.16)}
+.chip b{color:var(--text);font-weight:600}
+.chip b.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.chip-toggle{
+  cursor:pointer;font:500 12px var(--font-ui);
+  transition:border-color var(--t),color var(--t),background var(--t);
+}
+.chip-toggle:hover{border-color:var(--border-2);color:var(--text)}
+.chip-toggle[aria-expanded="true"]{border-color:var(--accent);color:var(--text);background:var(--accent-dim)}
+.chevron{font-size:10px}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--text-3);display:inline-block;flex:none}
+.dot.on{background:var(--ok);box-shadow:0 0 0 3px rgba(52,211,153,.16)}
+.dot.off{background:var(--bad);box-shadow:0 0 0 3px rgba(248,113,113,.16)}
 
-.console{
-  border:1px solid var(--rule);border-radius:14px;
-  background:linear-gradient(var(--panel),var(--panel-2));
-  padding:20px;box-shadow:0 24px 60px -30px rgba(0,0,0,.9);
+/* ============ workspace shell ============ */
+.workspace{max-width:1280px;margin:0 auto;padding:28px 24px 80px;position:relative}
+
+/* ============ composer ============ */
+.composer{
+  border:1px solid var(--border);border-radius:var(--r-lg);background:var(--s2);
+  padding:20px 22px;box-shadow:0 24px 56px -34px rgba(0,0,0,.85);
 }
-.corpus{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
-.corpus select{
-  background:var(--void);border:1px solid var(--rule);border-radius:8px;
-  color:var(--ink);font:12.5px var(--mono);padding:9px 11px;outline:none;cursor:pointer;
-  transition:border-color .16s;max-width:220px;
+.composer-tagline{margin:0 0 16px;color:var(--text-2);font-size:13px;max-width:60ch}
+.composer-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.corpus-row{margin-bottom:12px}
+.ask-row{margin-top:14px;align-items:stretch}
+
+.select{
+  background:var(--s1);border:1px solid var(--border);border-radius:var(--r-sm);
+  color:var(--text);font:400 13px var(--font-ui);padding:9px 12px;outline:none;cursor:pointer;
+  transition:border-color var(--t);max-width:230px;
 }
-.corpus select:focus{border-color:var(--beam)}
-.drop{
-  flex:1;min-width:160px;border:1px dashed var(--rule);border-radius:8px;
-  color:var(--faint);font-size:12.5px;padding:9px 14px;cursor:pointer;outline:none;
-  transition:border-color .16s,color .16s,background .16s;text-align:center;
+.select:hover{border-color:var(--border-2)}
+.select:focus-visible{border-color:var(--accent)}
+
+.dropzone{
+  flex:1;min-width:170px;border:1px dashed var(--border-2);border-radius:var(--r-sm);
+  color:var(--text-3);font-size:12.5px;padding:9px 14px;cursor:pointer;outline:none;text-align:center;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  transition:border-color var(--t),color var(--t),background var(--t);
 }
-.drop:hover,.drop:focus-visible{border-color:var(--beam);color:var(--dim)}
-.drop.drag{border-color:var(--beam);color:var(--ink);background:rgba(56,189,248,.08)}
-.confirm{color:var(--live);font:13px var(--mono);padding:6px 0}
-.ask{display:flex;gap:12px;align-items:stretch}
-.ask input{
-  flex:1;background:var(--void);border:1px solid var(--rule);border-radius:10px;
-  color:var(--ink);font:15px/1.4 var(--sans);padding:15px 17px;outline:none;
-  transition:border-color .18s,box-shadow .18s;min-width:0;
+.dropzone:hover,.dropzone:focus-visible{border-color:var(--accent);color:var(--text-2)}
+.dropzone.drag{border-color:var(--accent);color:var(--text);background:var(--accent-dim)}
+
+.btn-ghost{
+  font:500 12.5px var(--font-ui);color:var(--text-2);background:var(--s1);
+  border:1px solid var(--border);border-radius:var(--r-sm);padding:9px 13px;cursor:pointer;
+  transition:border-color var(--t),color var(--t);white-space:nowrap;
 }
-.ask input::placeholder{color:var(--faint)}
-.ask input:focus{border-color:var(--beam);box-shadow:0 0 0 4px rgba(56,189,248,.12)}
-button.run{
-  border:0;border-radius:10px;padding:0 26px;cursor:pointer;white-space:nowrap;
-  font:600 14px var(--sans);letter-spacing:.02em;
-  background:linear-gradient(180deg,#38bdf8,#0ea5e9);color:#04121b;
-  transition:filter .18s,transform .06s;
+.btn-ghost:hover{border-color:var(--bad);color:var(--bad)}
+
+.ask-input{
+  flex:1;background:var(--s1);border:1px solid var(--border);border-radius:var(--r);
+  color:var(--text);font:400 15px/1.4 var(--font-ui);padding:14px 16px;outline:none;min-width:0;
+  transition:border-color var(--t),box-shadow var(--t);
 }
-button.run:hover{filter:brightness(1.09)}
-button.run:active{transform:translateY(1px)}
-button.run[disabled]{opacity:.5;cursor:not-allowed;filter:none}
-.examples{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}
+.ask-input::placeholder{color:var(--text-3)}
+.ask-input:focus-visible{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-dim)}
+
+.btn-primary{
+  border:0;border-radius:var(--r);padding:0 24px;cursor:pointer;white-space:nowrap;
+  font:600 14px var(--font-ui);letter-spacing:.01em;background:var(--accent);color:var(--accent-ink);
+  transition:filter var(--t),transform 60ms ease;
+}
+.btn-primary:hover{filter:brightness(1.1)}
+.btn-primary:active{transform:translateY(1px)}
+.btn-primary[disabled]{opacity:.45;cursor:not-allowed;filter:none}
+
+.examples{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 .ex{
-  font:12.5px var(--sans);color:var(--dim);background:var(--void);
-  border:1px solid var(--rule);border-radius:8px;padding:6px 11px;cursor:pointer;
-  transition:border-color .16s,color .16s;text-align:left;
+  font:400 12.5px var(--font-ui);color:var(--text-2);background:var(--s1);
+  border:1px solid var(--border);border-radius:var(--r-sm);padding:7px 12px;cursor:pointer;
+  transition:border-color var(--t),color var(--t);text-align:left;
 }
-.ex:hover{border-color:var(--beam);color:var(--ink)}
+.ex:hover{border-color:var(--accent);color:var(--text)}
 .ex[data-kind="out"]{border-style:dashed}
 
-.stage{margin-top:22px;display:none}
-.stage.show{display:block;animation:rise .45s cubic-bezier(.22,1,.36,1)}
+.confirm{color:var(--ok);font:13px var(--font-mono);padding:8px 2px 0}
+.err{color:var(--bad);font:13px var(--font-mono);padding:8px 2px}
+
+/* ============ scan (staged measurement sequence) ============ */
+.scan{display:none;padding:22px 20px;text-align:center}
+.scan.inline-scan{padding:14px 4px 4px}
+.scan.show{display:block}
+.scan .steps{display:flex;justify-content:center;gap:0;flex-wrap:wrap;margin-bottom:14px}
+.scan .step{
+  font:500 11px/1 var(--font-mono);letter-spacing:.03em;color:var(--text-3);padding:0 14px;position:relative;
+  transition:color .3s;
+}
+.scan .step.done{color:var(--ok)}
+.scan .step.active{color:var(--accent)}
+.scan .step+.step::before{content:"";position:absolute;left:0;top:50%;width:1px;height:11px;background:var(--border);transform:translateY(-50%)}
+.trace{height:2px;background:var(--s1);border-radius:2px;overflow:hidden;max-width:420px;margin:0 auto}
+.trace i{display:block;height:100%;width:38%;background:linear-gradient(90deg,transparent,var(--accent),transparent);animation:sweep 1.15s linear infinite}
+@keyframes sweep{from{transform:translateX(-100%)}to{transform:translateX(360%)}}
+
+/* ============ results ============ */
+.stage{margin-top:24px;display:none}
+.stage.show{display:block;animation:rise .4s cubic-bezier(.22,1,.36,1)}
 @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 
 .verdict{
-  display:flex;align-items:center;gap:16px;padding:16px 20px;border-radius:12px;
-  border:1px solid var(--rule);background:var(--panel);margin-bottom:18px;
+  display:flex;align-items:center;gap:16px;padding:16px 20px;border-radius:var(--r-lg);
+  border:1px solid var(--border);background:var(--s2);margin-bottom:18px;
 }
-.verdict .big{font:600 15px var(--sans)}
-.verdict .sub{color:var(--dim);font-size:13px;margin-top:2px}
-.verdict.ok{border-color:rgba(74,222,128,.35);background:linear-gradient(90deg,rgba(74,222,128,.09),transparent 60%)}
-.verdict.no{border-color:rgba(248,113,113,.35);background:linear-gradient(90deg,rgba(248,113,113,.09),transparent 60%)}
-.verdict.abst{border-color:rgba(251,191,36,.35);background:linear-gradient(90deg,rgba(251,191,36,.09),transparent 60%)}
+.verdict .big{font:600 15px var(--font-ui)}
+.verdict .sub{color:var(--text-2);font-size:13px;margin-top:3px}
+.verdict.ok{border-color:rgba(52,211,153,.35);background:linear-gradient(90deg,rgba(52,211,153,.09),var(--s2) 65%)}
+.verdict.no{border-color:rgba(248,113,113,.35);background:linear-gradient(90deg,rgba(248,113,113,.09),var(--s2) 65%)}
+.verdict.abst{border-color:rgba(251,191,36,.35);background:linear-gradient(90deg,rgba(251,191,36,.09),var(--s2) 65%)}
 
-.cols{display:grid;grid-template-columns:1.35fr .95fr;gap:18px;align-items:start}
+.cols{display:grid;grid-template-columns:1.4fr 1fr;gap:18px;align-items:start}
 @media (max-width:940px){.cols{grid-template-columns:1fr}}
 
-.card{border:1px solid var(--rule);border-radius:12px;background:var(--panel);padding:18px 20px}
+.card{border:1px solid var(--border);border-radius:var(--r-lg);background:var(--s2);padding:18px 20px}
 .card h2{
-  font:600 11.5px/1 var(--mono);letter-spacing:.11em;text-transform:uppercase;
-  color:var(--faint);margin:0 0 14px;
+  font:600 11px/1 var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin:0 0 14px;
 }
-.answer{font-size:15.5px;line-height:1.72}
+.answer{font-size:15px;line-height:1.75;color:var(--text)}
 .answer .cite{
-  font:600 11px var(--mono);color:var(--beam);background:rgba(56,189,248,.11);
-  border:1px solid rgba(56,189,248,.3);border-radius:4px;padding:1px 5px;margin:0 1px;
-  cursor:pointer;transition:background .15s;
+  font:600 11px var(--font-mono);color:var(--accent);background:var(--accent-dim);
+  border:1px solid rgba(77,163,255,.32);border-radius:4px;padding:1px 5px;margin:0 1px;
+  cursor:pointer;transition:background var(--t);
 }
-.answer .cite:hover{background:rgba(56,189,248,.24)}
+.answer .cite:hover{background:rgba(77,163,255,.24)}
 
+/* ---- trust gauge ---- */
 .gauge{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
 .gauge svg{flex:none}
-.gauge .legend{font-size:12.5px;color:var(--dim);line-height:1.75;min-width:170px;flex:1}
+.gauge-ring{transition:stroke-dashoffset .9s cubic-bezier(.22,1,.36,1)}
+.gauge .legend{font-size:12.5px;color:var(--text-2);line-height:1.8;min-width:170px;flex:1}
 .gauge .row{display:flex;align-items:center;gap:8px}
 .gauge .swatch{width:10px;height:10px;border-radius:2px;flex:none}
-.gauge .val{font:600 13px var(--mono);color:var(--ink);margin-left:auto;padding-left:14px}
+.gauge .val{font:600 13px var(--font-mono);font-variant-numeric:tabular-nums;color:var(--text);margin-left:auto;padding-left:14px}
 .collapse-note{
-  font-size:12.5px;color:var(--dim);border-left:2px solid var(--rule);
-  padding-left:12px;margin-top:12px;line-height:1.6;
+  font-size:12.5px;color:var(--text-2);border-left:2px solid var(--border);padding-left:12px;margin-top:12px;line-height:1.6;
 }
 .collapse-note b{color:var(--warn);font-weight:600}
 
+/* ---- metrics ---- */
 .metric{margin:0 0 13px}
 .metric .lab{display:flex;align-items:baseline;gap:8px;margin-bottom:5px}
-.metric .name{font-size:13.5px}
-.metric .num{margin-left:auto;font:600 13px var(--mono);font-variant-numeric:tabular-nums}
-.metric .track{height:6px;border-radius:3px;background:#0d1117;overflow:hidden;border:1px solid var(--rule)}
-.metric .fill{display:block;height:100%;border-radius:3px;width:0;transition:width .85s cubic-bezier(.22,1,.36,1)}
-.metric .hint{font-size:11.5px;color:var(--faint);margin-top:4px}
-.na{color:var(--faint);font-style:italic}
+.metric .name{font-size:13px;color:var(--text)}
+.metric .num{margin-left:auto;font:600 13px var(--font-mono);font-variant-numeric:tabular-nums}
+.metric .track{height:6px;border-radius:3px;background:var(--s1);overflow:hidden;border:1px solid var(--border)}
+.metric .fill{display:block;height:100%;border-radius:3px;width:0;transition:width .8s cubic-bezier(.22,1,.36,1)}
+.metric .hint{font-size:11.5px;color:var(--text-3);margin-top:4px}
+.na{color:var(--text-3);font-style:italic}
 
-table{width:100%;border-collapse:collapse;font-size:13.5px}
+/* ---- tables / passages ---- */
+table{width:100%;border-collapse:collapse;font-size:13px}
 th{
-  text-align:left;font:600 10.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;
-  color:var(--faint);padding:0 10px 9px;border-bottom:1px solid var(--rule);
+  text-align:left;font:600 10.5px/1 var(--font-mono);letter-spacing:.09em;text-transform:uppercase;
+  color:var(--text-3);padding:0 10px 9px;border-bottom:1px solid var(--border);
 }
-td{padding:11px 10px;border-bottom:1px solid rgba(35,43,52,.6);vertical-align:top}
-td.n{text-align:right;font:600 13px var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+td{padding:11px 10px;border-bottom:1px solid rgba(30,35,42,.7);vertical-align:top;color:var(--text-2)}
+td.n{text-align:right;font:600 13px var(--font-mono);font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--text)}
 tr:last-child td{border-bottom:0}
 .tblwrap{overflow-x:auto}
-.psg{border-left:2px solid var(--rule);padding:3px 0 3px 14px;margin:13px 0;font-size:13.5px;color:var(--dim);transition:border-color .3s}
-.psg .meta{font:11.5px var(--mono);color:var(--faint);margin-bottom:4px;transition:color .3s}
-.psg.hit{border-left-color:var(--beam)}
-.psg.hit .meta{color:var(--beam)}
 
-.scan{display:none;padding:26px 20px;text-align:center}
-.scan.show{display:block}
-.scan .steps{display:flex;justify-content:center;gap:0;flex-wrap:wrap;margin-bottom:16px}
-.scan .step{font:11.5px var(--mono);color:var(--faint);padding:0 14px;position:relative;transition:color .3s}
-.scan .step.done{color:var(--live)}
-.scan .step.active{color:var(--beam)}
-.scan .step+.step::before{content:"";position:absolute;left:0;top:50%;width:1px;height:11px;background:var(--rule);transform:translateY(-50%)}
-.trace{height:2px;background:#0d1117;border-radius:2px;overflow:hidden;max-width:420px;margin:0 auto}
-.trace i{display:block;height:100%;width:38%;background:linear-gradient(90deg,transparent,var(--beam),transparent);animation:sweep 1.15s linear infinite}
-@keyframes sweep{from{transform:translateX(-100%)}to{transform:translateX(360%)}}
+.psg{border-left:2px solid var(--border);padding:3px 0 3px 14px;margin:13px 0;font-size:13px;color:var(--text-2);transition:border-color .3s}
+.psg .meta{font:11.5px var(--font-mono);color:var(--text-3);margin-bottom:4px;transition:color .3s}
+.psg.hit{border-left-color:var(--accent)}
+.psg.hit .meta{color:var(--accent)}
+
 @media (prefers-reduced-motion:reduce){
   .trace i{animation:none;width:100%;opacity:.4}
   .stage.show{animation:none}
   .metric .fill{transition:none}
+  .gauge-ring{transition:none}
+  .skip-link{transition:none}
 }
 
-footer{margin-top:30px;color:var(--faint);font-size:12.5px;display:flex;gap:18px;flex-wrap:wrap}
-footer a{color:var(--dim);text-decoration:none;border-bottom:1px solid var(--rule)}
-footer a:hover{color:var(--beam);border-color:var(--beam)}
-.err{color:var(--fail);font:13px var(--mono);padding:14px 0}
+/* ============ footer ============ */
+.site-footer{max-width:1280px;margin:0 auto;padding:0 24px 48px;color:var(--text-3);font-size:12.5px;display:flex;gap:18px;flex-wrap:wrap}
+.site-footer a{color:var(--text-2);text-decoration:none;border-bottom:1px solid var(--border);transition:color var(--t),border-color var(--t)}
+.site-footer a:hover{color:var(--accent);border-color:var(--accent)}
 </style>
 </head>
 <body>
-<div class="shell">
+<a class="skip-link" href="#main">Skip to content</a>
 
-<header>
-  <div class="mark">
-    <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
-      <rect x="1.5" y="1.5" width="27" height="27" rx="7" stroke="#232b34" stroke-width="1.5"/>
-      <path d="M6 19.5 L11 19.5 L13.5 9.5 L16.5 22 L19 14.5 L21.5 17.5 L24 17.5"
-            stroke="#38bdf8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-    </svg>
-    <div>
-      <h1>RAG Trustworthiness</h1>
-      <p class="tagline">Every answer returns its evidence and a measurement of how well that evidence supports it.</p>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="#main" aria-label="RAG Trustworthiness">
+      <svg class="brand-mark" width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
+        <rect x="1" y="1" width="20" height="20" rx="5" stroke="#2a313a" stroke-width="1.4"/>
+        <path d="M4.5 14.5 L8 14.5 L10 7 L12.3 16.2 L14.2 10.5 L16 13 L18 13"
+              stroke="#4da3ff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+      <span class="brand-name">RAG Trustworthiness</span>
+    </a>
+    <div class="status-cluster">
+      <span class="chip"><span class="dot" id="dot"></span><span id="svc">connecting</span></span>
+      <span class="chip">passages <b id="npsg" class="mono">—</b></span>
+      <span class="chip">nli <b id="nli">—</b></span>
+      <button class="chip chip-toggle" id="evalToggle" type="button" aria-expanded="false" aria-controls="evalPanel">
+        <span>Evaluation</span><span class="chevron" id="evalToggleIcon" aria-hidden="true">▾</span>
+      </button>
     </div>
-  </div>
-  <div class="status">
-    <span class="chip"><span class="dot" id="dot"></span><span id="svc">connecting</span></span>
-    <span class="chip">passages <b id="npsg">—</b></span>
-    <span class="chip">nli <b id="nli">—</b></span>
-    <button class="chip" id="evalToggle" type="button" style="cursor:pointer" aria-expanded="false" aria-controls="evalPanel">evaluation <b id="evalToggleIcon">▾</b></button>
   </div>
 </header>
 
-<div class="console">
-  <div class="corpus">
-    <label for="corpusSel" class="sr-only" style="position:absolute;left:-9999px">Corpus</label>
-    <select id="corpusSel" aria-label="corpus"></select>
-    <div class="drop" id="drop" role="button" tabindex="0" aria-label="Upload a document">drop a document, or click to browse</div>
-    <input type="file" id="file" accept=".pdf,.md,.txt" style="display:none">
-    <button class="ex" id="delCorpus" data-kind="out" style="display:none">delete corpus</button>
-  </div>
-  <div class="scan" id="uploadScan" aria-live="polite">
-    <div class="steps"><span class="step active" id="uploadLabel"></span></div>
+<main class="workspace" id="main">
+  <section class="composer" aria-label="Ask a question">
+    <p class="composer-tagline">Every answer returns its evidence and a measurement of how well that evidence supports it.</p>
+
+    <div class="composer-row corpus-row">
+      <label for="corpusSel" class="sr-only">Corpus</label>
+      <select id="corpusSel" class="select" aria-label="corpus"></select>
+      <div class="dropzone" id="drop" role="button" tabindex="0" aria-label="Upload a document">drop a document, or click to browse</div>
+      <input type="file" id="file" accept=".pdf,.md,.txt" style="display:none">
+      <button class="btn-ghost" id="delCorpus" type="button" style="display:none">delete corpus</button>
+    </div>
+
+    <div class="scan inline-scan" id="uploadScan" aria-live="polite">
+      <div class="steps"><span class="step active" id="uploadLabel"></span></div>
+      <div class="trace"><i></i></div>
+    </div>
+    <div id="uploadMsg"></div>
+
+    <div class="composer-row ask-row">
+      <label for="q" class="sr-only">Question</label>
+      <input id="q" class="ask-input" type="text" autocomplete="off" spellcheck="false"
+             placeholder="Ask something the corpus covers — or something it does not.">
+      <button class="btn-primary" id="go" type="button">Measure</button>
+    </div>
+    <div class="examples" id="ex"></div>
+  </section>
+
+  <section class="scan" id="scan" aria-live="polite">
+    <div class="steps">
+      <span class="step">retrieve</span>
+      <span class="step">gate</span>
+      <span class="step">generate</span>
+      <span class="step">decompose</span>
+      <span class="step">entail</span>
+      <span class="step">score</span>
+    </div>
     <div class="trace"><i></i></div>
-  </div>
-  <div id="uploadMsg"></div>
-  <div class="ask">
-    <label for="q" class="sr-only" style="position:absolute;left:-9999px">Question</label>
-    <input id="q" type="text" autocomplete="off" spellcheck="false"
-           placeholder="Ask something the corpus covers — or something it does not.">
-    <button class="run" id="go">Measure</button>
-  </div>
-  <div class="examples" id="ex"></div>
-</div>
+  </section>
 
-<div class="scan" id="scan" aria-live="polite">
-  <div class="steps">
-    <span class="step">retrieve</span>
-    <span class="step">gate</span>
-    <span class="step">generate</span>
-    <span class="step">decompose</span>
-    <span class="step">entail</span>
-    <span class="step">score</span>
-  </div>
-  <div class="trace"><i></i></div>
-</div>
+  <section class="stage" id="stage"></section>
 
-<div class="stage" id="stage"></div>
+  <section class="card" id="evalPanel" style="display:none;margin-top:22px">
+    <h2>Evaluation</h2>
+    <div id="evalBody"></div>
+  </section>
+</main>
 
-<div class="card" id="evalPanel" style="display:none;margin-top:22px">
-  <h2>Evaluation</h2>
-  <div id="evalBody"></div>
-</div>
-
-<footer>
+<footer class="site-footer">
   <a href="https://github.com/hharsha98/rag-trustworthiness-industrial">Source</a>
   <a href="https://github.com/hharsha98/rag-trustworthiness-industrial/blob/main/METRICS.md">Formal spec</a>
   <span id="foot"></span>
 </footer>
 
-</div>
 <script>
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const f3 = x => (x === null || x === undefined || Number.isNaN(x)) ? null : Number(x).toFixed(3);
+
+const reduceMotion = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+// Count-up used for the gauge's center number, its legend values and each
+// metric bar's number -- the page's one signature motion moment (staged scan
+// -> arc draw -> numbers landing on their value). Anything static (e.g. "—"
+// for a null/undefined value) is written directly by the caller and never
+// passed in here.
+function animateNumber(el, target, decimals){
+  if (!el || target === null || target === undefined || Number.isNaN(target)) return;
+  const final = target.toFixed(decimals);
+  if (reduceMotion){ el.textContent = final; return; }
+  const duration = 700, start = performance.now();
+  (function tick(now){
+    const p = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - p, 3);
+    el.textContent = (target * eased).toFixed(decimals);
+    if (p < 1) requestAnimationFrame(tick); else el.textContent = final;
+  })(start);
+}
 
 const META = {
   faithfulness:      ["Faithfulness",       "share of the answer the passages actually entail"],
@@ -273,8 +346,8 @@ const META = {
 };
 const ORDER = ["faithfulness","attribution","relevance","answer_relevance","conciseness","contradiction_rate"];
 const tone = (k,v) => k === "contradiction_rate"
-  ? (v > .5 ? "var(--fail)" : v > .25 ? "var(--warn)" : "var(--live)")
-  : (v >= .7 ? "var(--live)" : v >= .4 ? "var(--warn)" : "var(--fail)");
+  ? (v > .5 ? "var(--bad)" : v > .25 ? "var(--warn)" : "var(--ok)")
+  : (v >= .7 ? "var(--ok)" : v >= .4 ? "var(--warn)" : "var(--bad)");
 
 const fmtMs = x => (x === null || x === undefined || Number.isNaN(Number(x))) ? "—" : Math.round(Number(x)) + "ms";
 const fmtPct = x => (x === null || x === undefined || Number.isNaN(Number(x))) ? "—" : Math.round(Number(x) * 100) + "%";
@@ -286,7 +359,7 @@ const fmtTrust = x => (x === null || x === undefined || Number.isNaN(Number(x)))
 // straight off the /answer response.
 function stageChipsHtml(stages){
   const inner = (Array.isArray(stages) && stages.length)
-    ? stages.map(s => `<span class="chip">${esc(s.stage)} <b>${fmtMs(s.ms)}</b></span>`).join("")
+    ? stages.map(s => `<span class="chip">${esc(s.stage)} <b class="mono">${fmtMs(s.ms)}</b></span>`).join("")
     : "";
   return `<div id="runStages" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:14px">${inner}</div>`;
 }
@@ -296,24 +369,29 @@ function gauge(arith, geom){
   const C = 2 * Math.PI * R, C2 = 2 * Math.PI * R2;
   const clamp = v => Math.max(0, Math.min(1, Number(v) || 0));
   const gap = (Number(arith) || 0) - (Number(geom) || 0);
+  const haveA = arith !== null && arith !== undefined, haveG = geom !== null && geom !== undefined;
+  const offA = C * (1 - clamp(arith)), offG = C2 * (1 - clamp(geom));
   return `
   <div class="gauge">
     <svg width="132" height="132" viewBox="0 0 132 132" role="img"
          aria-label="Trust: geometric ${f3(geom) ?? "unavailable"}, arithmetic ${f3(arith) ?? "unavailable"}">
-      <circle cx="66" cy="66" r="${R}" fill="none" stroke="#0d1117" stroke-width="${SW}"/>
-      <circle cx="66" cy="66" r="${R}" fill="none" stroke="#334155" stroke-width="${SW}"
-              stroke-linecap="round" stroke-dasharray="${C*clamp(arith)} ${C}" transform="rotate(-90 66 66)"/>
-      <circle cx="66" cy="66" r="${R2}" fill="none" stroke="#0d1117" stroke-width="${SW}"/>
-      <circle cx="66" cy="66" r="${R2}" fill="none" stroke="${tone('t', geom)}" stroke-width="${SW}"
-              stroke-linecap="round" stroke-dasharray="${C2*clamp(geom)} ${C2}" transform="rotate(-90 66 66)"/>
-      <text x="66" y="62" text-anchor="middle" fill="#e8edf2" style="font:600 25px var(--mono)">${f3(geom) ?? "—"}</text>
-      <text x="66" y="80" text-anchor="middle" fill="#5a6472" style="font:500 9.5px var(--mono);letter-spacing:.14em">TRUST</text>
+      <circle cx="66" cy="66" r="${R}" fill="none" stroke="#0e1013" stroke-width="${SW}"/>
+      <circle class="gauge-ring" cx="66" cy="66" r="${R}" fill="none" stroke="#2a313a" stroke-width="${SW}"
+              stroke-linecap="round" stroke-dasharray="${C} ${C}" stroke-dashoffset="${C}" data-off="${offA}"
+              transform="rotate(-90 66 66)"/>
+      <circle cx="66" cy="66" r="${R2}" fill="none" stroke="#0e1013" stroke-width="${SW}"/>
+      <circle class="gauge-ring" cx="66" cy="66" r="${R2}" fill="none" stroke="${tone('t', geom)}" stroke-width="${SW}"
+              stroke-linecap="round" stroke-dasharray="${C2} ${C2}" stroke-dashoffset="${C2}" data-off="${offG}"
+              transform="rotate(-90 66 66)"/>
+      <text x="66" y="61" text-anchor="middle" fill="#f2f4f7" style="font:600 24px var(--font-mono)"
+            data-target="${haveG ? geom : ""}">${haveG ? "0.000" : "—"}</text>
+      <text x="66" y="80" text-anchor="middle" fill="#7f8a97" style="font:500 9.5px var(--font-mono);letter-spacing:.14em">TRUST</text>
     </svg>
     <div class="legend">
       <div class="row"><span class="swatch" style="background:${tone('t',geom)}"></span>
-        Geometric <span class="val">${f3(geom) ?? "—"}</span></div>
-      <div class="row"><span class="swatch" style="background:#334155"></span>
-        Arithmetic <span class="val">${f3(arith) ?? "—"}</span></div>
+        Geometric <span class="val" data-target="${haveG ? geom : ""}">${haveG ? "0.000" : "—"}</span></div>
+      <div class="row"><span class="swatch" style="background:#2a313a"></span>
+        Arithmetic <span class="val" data-target="${haveA ? arith : ""}">${haveA ? "0.000" : "—"}</span></div>
       <div class="collapse-note">${gap > 0.04
         ? `The geometric score sits <b>${gap.toFixed(3)} lower</b>. It is non-compensatory — one weak dimension pulls it down, where the arithmetic mean lets the others mask it.`
         : `Both aggregates agree, so no single dimension is dragging. The geometric form can never exceed the arithmetic one.`}</div>
@@ -329,7 +407,7 @@ function metricRow(k, v){
       <div class="hint">not computable for this answer — dropped from the score, not counted as zero</div></div>`;
   }
   return `<div class="metric">
-    <div class="lab"><span class="name">${name}</span><span class="num" style="color:${tone(k,v)}">${f3(v)}</span></div>
+    <div class="lab"><span class="name">${name}</span><span class="num" style="color:${tone(k,v)}" data-target="${v}">0.000</span></div>
     <div class="track"><i class="fill" style="background:${tone(k,v)}" data-w="${Math.max(0,Math.min(1,v))*100}"></i></div>
     <div class="hint">${hint}</div></div>`;
 }
@@ -362,7 +440,7 @@ function render(d){
       <div class="sub">${esc(d.abstain_reason || "Nothing in the corpus supports an answer.")}</div>
     </div></div>
     <div class="card"><h2>Why this is the correct outcome</h2>
-    <p style="margin:0;color:var(--dim);font-size:13.5px;line-height:1.7">
+    <p style="margin:0;color:var(--text-2);font-size:13.5px;line-height:1.7">
     The retrieval gate fires <em>before</em> generation, so a question the corpus cannot answer costs
     nothing to refuse. Declining is a first-class result here — a system that always answers has no
     way to tell you when it should not have.</p>${stageChipsHtml(d.stage_timings)}</div>`;
@@ -390,10 +468,10 @@ function render(d){
           const s = support[i];
           const p = cites[String(i)];
           return `<tr><td>${esc(c)}</td>
-            <td class="n" style="color:${s === undefined ? "var(--faint)" : tone('faithfulness', s)}">${f3(s) ?? "—"}</td>
-            <td class="n" style="color:var(--faint)">${p === undefined ? "—" : "#" + (p + 1)}</td></tr>`;
+            <td class="n" style="color:${s === undefined ? "var(--text-3)" : tone('faithfulness', s)}">${f3(s) ?? "—"}</td>
+            <td class="n" style="color:var(--text-3)">${p === undefined ? "—" : "#" + (p + 1)}</td></tr>`;
         }).join("") + `</tbody></table>
-        <p class="hint" style="margin:10px 0 0;font-size:11.5px;color:var(--faint)">
+        <p class="hint" style="margin:10px 0 0;font-size:11.5px;color:var(--text-3)">
         Support is the best entailment probability across retrieved passages. A claim can be
         well-supported yet uncited — that gap is exactly what attribution measures.</p>
         </div></div>`;
@@ -424,7 +502,15 @@ function render(d){
 
   $("#stage").innerHTML = h;
   $("#stage").classList.add("show");
-  requestAnimationFrame(() => document.querySelectorAll(".fill").forEach(el => el.style.width = el.dataset.w + "%"));
+  requestAnimationFrame(() => {
+    document.querySelectorAll(".fill").forEach(el => { el.style.width = el.dataset.w + "%"; });
+    document.querySelectorAll(".gauge-ring").forEach(el => { el.style.strokeDashoffset = el.dataset.off; });
+    document.querySelectorAll("[data-target]").forEach(el => {
+      const raw = el.dataset.target;
+      if (raw === "" || raw === undefined) return;
+      animateNumber(el, Number(raw), 3);
+    });
+  });
   const jump = c => {
     const el = document.getElementById("p" + c.dataset.p);
     if (el){ el.scrollIntoView({behavior:"smooth",block:"center"}); el.classList.add("hit");
@@ -444,16 +530,16 @@ function renderEvalPanel(data){
   const body = $("#evalBody");
 
   if (!stats.count){
-    body.innerHTML = `<p style="margin:0;color:var(--faint);font-size:13px">no runs recorded yet — ask a question to populate this panel.</p>`;
+    body.innerHTML = `<p style="margin:0;color:var(--text-3);font-size:13px">no runs recorded yet — ask a question to populate this panel.</p>`;
     return;
   }
 
   let h = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">
-    <span class="chip">runs <b>${stats.count}</b></span>
-    <span class="chip">abstention <b>${fmtPct(stats.abstention_rate)}</b></span>
-    <span class="chip">p50 <b>${fmtMs(stats.p50_ms)}</b></span>
-    <span class="chip">p95 <b>${fmtMs(stats.p95_ms)}</b></span>
-    <span class="chip">mean trust <b>${fmtTrust(stats.mean_trust)}</b></span>
+    <span class="chip">runs <b class="mono">${stats.count}</b></span>
+    <span class="chip">abstention <b class="mono">${fmtPct(stats.abstention_rate)}</b></span>
+    <span class="chip">p50 <b class="mono">${fmtMs(stats.p50_ms)}</b></span>
+    <span class="chip">p95 <b class="mono">${fmtMs(stats.p95_ms)}</b></span>
+    <span class="chip">mean trust <b class="mono">${fmtTrust(stats.mean_trust)}</b></span>
   </div>`;
 
   // Latency breakdown: mean ms per stage across the traces this call returned
@@ -471,7 +557,7 @@ function renderEvalPanel(data){
     h += `<div style="margin-bottom:20px">` + means.map(m => `
       <div class="metric">
         <div class="lab"><span class="name">${esc(m.stage)}</span><span class="num">${fmtMs(m.mean)}</span></div>
-        <div class="track"><i class="fill" style="background:var(--beam)" data-w="${(m.mean / maxMean * 100).toFixed(1)}"></i></div>
+        <div class="track"><i class="fill" style="background:var(--accent)" data-w="${(m.mean / maxMean * 100).toFixed(1)}"></i></div>
       </div>`).join("") + `</div>`;
   }
 
@@ -484,11 +570,11 @@ function renderEvalPanel(data){
       <th style="text-align:right">Trust</th><th style="text-align:right">Total</th>
     </tr></thead><tbody>` +
     rows.map(t => `<tr>
-      <td style="font:12.5px var(--mono);color:var(--dim)">${esc(t.question_hash)}</td>
-      <td style="color:var(--faint);font-size:12.5px">${t.corpus_id ? esc(t.corpus_id) : "demo"}</td>
+      <td style="font:12.5px var(--font-mono);color:var(--text-2)">${esc(t.question_hash)}</td>
+      <td style="color:var(--text-3);font-size:12.5px">${t.corpus_id ? esc(t.corpus_id) : "demo"}</td>
       <td>${t.abstained
         ? `<span style="color:var(--warn)">abstained</span>`
-        : `<span style="color:var(--live)">answered</span>`}</td>
+        : `<span style="color:var(--ok)">answered</span>`}</td>
       <td class="n">${fmtTrust(t.trust_geometric)}</td>
       <td class="n">${fmtMs(t.total_ms)}</td>
     </tr>`).join("") +
@@ -500,7 +586,7 @@ function renderEvalPanel(data){
 
 let evalOpen = false;
 function loadEval(){
-  $("#evalBody").innerHTML = `<p style="margin:0;color:var(--faint);font-size:13px">loading…</p>`;
+  $("#evalBody").innerHTML = `<p style="margin:0;color:var(--text-3);font-size:13px">loading…</p>`;
   fetch("/traces?limit=50").then(r => r.json()).then(renderEvalPanel).catch(() => {
     $("#evalBody").innerHTML = `<p class="err" style="margin:0;padding:0">failed to load evaluation data</p>`;
   });
