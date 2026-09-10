@@ -331,23 +331,47 @@ class RAGTrustPipeline:
             raise ValueError("Nothing indexed. Call index_corpus/index_dir/load first.")
 
         retrieved = self.retriever.search(query, self.config.k)
+        return self.answer_with(query, retrieved)
+
+    def answer_with(self, query: str, retrieved: list) -> AnswerResult:
+        """Score and answer `query` against a passage pool the CALLER assembled,
+        rather than retrieving internally. `answer()` is now a one-line wrapper
+        that retrieves and delegates here.
+
+        This split exists for agentic.py::answer_iterative, which unions passages
+        across several retrieval rounds and needs to hand that pool to the same
+        gating/generation/aggregation logic `answer()` uses for a single
+        retrieval -- there was previously no seam for a caller to score a
+        passage set it assembled itself.
+        """
+        if not retrieved:
+            raise ValueError("Nothing retrieved to answer from.")
+
         # *** THE ENFORCEMENT POINT OF THE CONTEXTUAL-RETRIEVAL INVARIANT ***
-        # `retriever.search` returns passages carrying whatever text was
-        # indexed -- under Config.contextual=True that is an LLM-WRITTEN blurb
-        # prepended to the chunk (ingest/contextualize.py), because the blurb
-        # is what makes retrieval better. That blurb is not a fact: the model
-        # can invent an entity, a date, a relationship that isn't there. This
-        # line throws it away and swaps in the untouched source chunk for
-        # every retrieved passage BEFORE anything below reads `.text` --
-        # the cosine gate, `generator.generate`, NLI premises in `faithfulness`/
-        # `attribution`, citations, and `to_dict()`. If a generated blurb ever
-        # reached the NLI model as an entailment premise, a claim could be
-        # scored "faithful" because it is entailed by text the model invented
-        # rather than by the corpus -- exactly the defect this repository
-        # exists to detect. Moving this line, or reading retrieval-time text
-        # anywhere past it, silently reintroduces that defect. When
-        # Config.contextual is off this is a no-op: `source_text(id)` returns
-        # the same string `retriever.search` already put in `p.text`.
+        # `retrieved` carries passages tagged with whatever text was indexed --
+        # under Config.contextual=True that is an LLM-WRITTEN blurb prepended to
+        # the chunk (ingest/contextualize.py), because the blurb is what makes
+        # retrieval better. That blurb is not a fact: the model can invent an
+        # entity, a date, a relationship that isn't there. This line throws it
+        # away and swaps in the untouched source chunk for every passage BEFORE
+        # anything below reads `.text` -- the cosine gate, `generator.generate`,
+        # NLI premises in `faithfulness`/`attribution`, citations, and
+        # `to_dict()`. If a generated blurb ever reached the NLI model as an
+        # entailment premise, a claim could be scored "faithful" because it is
+        # entailed by text the model invented rather than by the corpus --
+        # exactly the defect this repository exists to detect. Moving this line,
+        # or reading retrieval-time text anywhere past it, silently reintroduces
+        # that defect. When Config.contextual is off this is a no-op:
+        # `source_text(id)` returns the same string `retriever.search` already
+        # put in `p.text`.
+        #
+        # This line lives at the top of `answer_with`, not `answer`, so the
+        # invariant holds for EVERY caller of `answer_with` -- including
+        # agentic.py's iterative loop, which assembles `retrieved` itself from
+        # several rounds of `retriever.search` and never goes through `answer()`
+        # at all. Putting the swap only in `answer()` would let a raw,
+        # blurb-carrying passage pool reach NLI/generation/citations for any
+        # caller that bypasses `answer()`.
         retrieved = [replace(p, text=self.source_text(p.id)) for p in retrieved]
         passage_texts = [p.text for p in retrieved]
         sources = {getattr(p, "id", None): self.passage_meta.get(getattr(p, "id", None), {})

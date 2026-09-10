@@ -143,6 +143,29 @@ class Config:
     contextual: bool = False
     contextual_model: str = "llama3.2:3b"
 
+    # --- agentic retrieval --------------------------------------------------------
+    # agentic.py::answer_iterative's retrieval loop: how many retrieve-score-
+    # reformulate rounds it may spend before giving up. Each round beyond the
+    # first costs one reformulation call plus (unless a gate fires) one
+    # generation call, so this is a cost cap, not a quality target -- the loop
+    # already stops early the moment measured trust clears abstain_threshold
+    # (see agentic.py's module docstring on why trust, not an LLM
+    # self-assessment, is the stopping criterion). 3 is enough headroom for one
+    # or two reformulations to find a better angle on the query without
+    # letting a persistently low-trust query burn an unbounded number of calls.
+    agentic_max_rounds: int = 3
+
+    # routing.py::route's margin above retrieval_gate: below retrieval_gate is
+    # ROUTE_ABSTAIN, at or above retrieval_gate + this margin is ROUTE_SINGLE
+    # (confident enough that iterating is not worth its extra generation
+    # calls), and the band in between is ROUTE_ITERATIVE. 0.15 was chosen to
+    # be roughly half the ~0.72 in-corpus vs ~0.08 out-of-corpus separation
+    # retrieval_gate itself is calibrated against (see retrieval_gate's
+    # docstring above) -- wide enough to catch queries that are genuinely
+    # borderline, not so wide that ROUTE_SINGLE only ever fires on the
+    # easiest queries.
+    route_iterate_margin: float = 0.15
+
     def __post_init__(self):
         if self.chunk_window < 1 or self.chunk_stride < 1:
             raise ValueError("chunk_window and chunk_stride must both be >= 1")
@@ -155,3 +178,5 @@ class Config:
             raise ValueError("all aggregation weights must be > 0")
         if self.answer_relevance_n_questions < 1:
             raise ValueError("answer_relevance_n_questions must be >= 1")
+        if self.agentic_max_rounds < 1:
+            raise ValueError("agentic_max_rounds must be >= 1")
