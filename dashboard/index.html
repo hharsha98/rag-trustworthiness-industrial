@@ -206,6 +206,7 @@ footer a:hover{color:var(--beam);border-color:var(--beam)}
     <span class="chip"><span class="dot" id="dot"></span><span id="svc">connecting</span></span>
     <span class="chip">passages <b id="npsg">—</b></span>
     <span class="chip">nli <b id="nli">—</b></span>
+    <button class="chip" id="evalToggle" type="button" style="cursor:pointer" aria-expanded="false" aria-controls="evalPanel">evaluation <b id="evalToggleIcon">▾</b></button>
   </div>
 </header>
 
@@ -245,6 +246,11 @@ footer a:hover{color:var(--beam);border-color:var(--beam)}
 
 <div class="stage" id="stage"></div>
 
+<div class="card" id="evalPanel" style="display:none;margin-top:22px">
+  <h2>Evaluation</h2>
+  <div id="evalBody"></div>
+</div>
+
 <footer>
   <a href="https://github.com/hharsha98/rag-trustworthiness-industrial">Source</a>
   <a href="https://github.com/hharsha98/rag-trustworthiness-industrial/blob/main/METRICS.md">Formal spec</a>
@@ -269,6 +275,21 @@ const ORDER = ["faithfulness","attribution","relevance","answer_relevance","conc
 const tone = (k,v) => k === "contradiction_rate"
   ? (v > .5 ? "var(--fail)" : v > .25 ? "var(--warn)" : "var(--live)")
   : (v >= .7 ? "var(--live)" : v >= .4 ? "var(--warn)" : "var(--fail)");
+
+const fmtMs = x => (x === null || x === undefined || Number.isNaN(Number(x))) ? "—" : Math.round(Number(x)) + "ms";
+const fmtPct = x => (x === null || x === undefined || Number.isNaN(Number(x))) ? "—" : Math.round(Number(x) * 100) + "%";
+const fmtTrust = x => (x === null || x === undefined || Number.isNaN(Number(x))) ? "—" : Number(x).toFixed(3);
+
+// Compact per-run cost readout, rendered next to the trust gauge (or, for an
+// abstention, next to the verdict that replaces it) so a single run's cost is
+// visible without opening the Evaluation panel below. Reads `stage_timings`
+// straight off the /answer response.
+function stageChipsHtml(stages){
+  const inner = (Array.isArray(stages) && stages.length)
+    ? stages.map(s => `<span class="chip">${esc(s.stage)} <b>${fmtMs(s.ms)}</b></span>`).join("")
+    : "";
+  return `<div id="runStages" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:14px">${inner}</div>`;
+}
 
 function gauge(arith, geom){
   const R = 52, SW = 11, R2 = R - SW - 3;
@@ -344,7 +365,7 @@ function render(d){
     <p style="margin:0;color:var(--dim);font-size:13.5px;line-height:1.7">
     The retrieval gate fires <em>before</em> generation, so a question the corpus cannot answer costs
     nothing to refuse. Declining is a first-class result here — a system that always answers has no
-    way to tell you when it should not have.</p></div>`;
+    way to tell you when it should not have.</p>${stageChipsHtml(d.stage_timings)}</div>`;
   } else {
     const ok = d.is_trustworthy;
     h += `<div class="verdict ${ok ? "ok" : "no"}"><div>
@@ -378,7 +399,7 @@ function render(d){
         </div></div>`;
     }
     h += `</div><div>
-      <div class="card">${gauge(t.arithmetic, t.geometric)}</div>
+      <div class="card">${gauge(t.arithmetic, t.geometric)}${stageChipsHtml(d.stage_timings)}</div>
       <div class="card" style="margin-top:18px"><h2>Metrics</h2>${
         ORDER.filter(k => k in m).map(k => metricRow(k, m[k])).join("")}</div>
       </div></div>`;
@@ -414,6 +435,83 @@ function render(d){
     c.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); jump(c); } };
   });
 }
+
+const STAGE_ORDER = ["retrieve","gate","generate","decompose","entail","score"];
+
+function renderEvalPanel(data){
+  const stats = (data && data.stats) || {};
+  const traces = Array.isArray(data && data.traces) ? data.traces : [];
+  const body = $("#evalBody");
+
+  if (!stats.count){
+    body.innerHTML = `<p style="margin:0;color:var(--faint);font-size:13px">no runs recorded yet — ask a question to populate this panel.</p>`;
+    return;
+  }
+
+  let h = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">
+    <span class="chip">runs <b>${stats.count}</b></span>
+    <span class="chip">abstention <b>${fmtPct(stats.abstention_rate)}</b></span>
+    <span class="chip">p50 <b>${fmtMs(stats.p50_ms)}</b></span>
+    <span class="chip">p95 <b>${fmtMs(stats.p95_ms)}</b></span>
+    <span class="chip">mean trust <b>${fmtTrust(stats.mean_trust)}</b></span>
+  </div>`;
+
+  // Latency breakdown: mean ms per stage across the traces this call returned
+  // (not the full ring buffer) -- the payoff of the panel, showing where the
+  // time actually goes. Bars scale to the largest stage mean, matching the
+  // .fill pattern used for the per-metric bars above.
+  const sums = {}, counts = {};
+  traces.forEach(t => (t.stages || []).forEach(s => {
+    sums[s.stage] = (sums[s.stage] || 0) + (Number(s.ms) || 0);
+    counts[s.stage] = (counts[s.stage] || 0) + 1;
+  }));
+  const means = STAGE_ORDER.filter(k => counts[k]).map(k => ({stage: k, mean: sums[k] / counts[k]}));
+  if (means.length){
+    const maxMean = Math.max(...means.map(m => m.mean), 0.001);
+    h += `<div style="margin-bottom:20px">` + means.map(m => `
+      <div class="metric">
+        <div class="lab"><span class="name">${esc(m.stage)}</span><span class="num">${fmtMs(m.mean)}</span></div>
+        <div class="track"><i class="fill" style="background:var(--beam)" data-w="${(m.mean / maxMean * 100).toFixed(1)}"></i></div>
+      </div>`).join("") + `</div>`;
+  }
+
+  // Recent runs -- TraceBuffer.recent() already returns newest-first, capped
+  // here at 15 with its own scroll region so the page doesn't grow unbounded.
+  const rows = traces.slice(0, 15);
+  h += `<div class="tblwrap" style="max-height:320px;overflow-y:auto">
+    <table><thead><tr>
+      <th>Question</th><th>Corpus</th><th>Result</th>
+      <th style="text-align:right">Trust</th><th style="text-align:right">Total</th>
+    </tr></thead><tbody>` +
+    rows.map(t => `<tr>
+      <td style="font:12.5px var(--mono);color:var(--dim)">${esc(t.question_hash)}</td>
+      <td style="color:var(--faint);font-size:12.5px">${t.corpus_id ? esc(t.corpus_id) : "demo"}</td>
+      <td>${t.abstained
+        ? `<span style="color:var(--warn)">abstained</span>`
+        : `<span style="color:var(--live)">answered</span>`}</td>
+      <td class="n">${fmtTrust(t.trust_geometric)}</td>
+      <td class="n">${fmtMs(t.total_ms)}</td>
+    </tr>`).join("") +
+    `</tbody></table></div>`;
+
+  body.innerHTML = h;
+  requestAnimationFrame(() => body.querySelectorAll(".fill").forEach(el => el.style.width = el.dataset.w + "%"));
+}
+
+let evalOpen = false;
+function loadEval(){
+  $("#evalBody").innerHTML = `<p style="margin:0;color:var(--faint);font-size:13px">loading…</p>`;
+  fetch("/traces?limit=50").then(r => r.json()).then(renderEvalPanel).catch(() => {
+    $("#evalBody").innerHTML = `<p class="err" style="margin:0;padding:0">failed to load evaluation data</p>`;
+  });
+}
+$("#evalToggle").onclick = () => {
+  evalOpen = !evalOpen;
+  $("#evalPanel").style.display = evalOpen ? "" : "none";
+  $("#evalToggleIcon").textContent = evalOpen ? "▴" : "▾";
+  $("#evalToggle").setAttribute("aria-expanded", String(evalOpen));
+  if (evalOpen) loadEval();
+};
 
 // What `p.score` actually IS depends on retrieval_mode, and the three are not
 // the same quantity on the same scale: dense returns a cosine similarity in
@@ -564,7 +662,10 @@ async function ask(q){
         $("#stage").innerHTML = `<div class="err">${esc(d.detail || ("HTTP " + r.status))}</div>`;
         $("#stage").classList.add("show");
       }
-    } else render(d);
+    } else {
+      render(d);
+      if (evalOpen) loadEval();
+    }
   }catch(e){
     stopScan();
     $("#stage").innerHTML = `<div class="err">Request failed — ${esc(e.message)}</div>`;

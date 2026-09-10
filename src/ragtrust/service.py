@@ -78,6 +78,12 @@ class AnswerResponse(BaseModel):
     citations: dict
     per_claim_support: list
     passages: list
+    # Declared explicitly because `response_model=AnswerResponse` makes Pydantic
+    # DROP any key this model does not name. `AnswerResult.to_dict()` has carried
+    # stage timings since they were introduced, but they never reached a client:
+    # the payload was filtered on the way out, silently and with no error, so the
+    # pipeline paid to measure them and the dashboard had no way to see them.
+    stage_timings: list = []
     latency_ms: float
 
 
