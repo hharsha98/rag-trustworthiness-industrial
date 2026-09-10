@@ -174,3 +174,109 @@ def test_api_examples_empty_when_cached_answers_file_absent(tmp_path, monkeypatc
     resp = client.get("/api/examples")
     assert resp.status_code == 200
     assert resp.json() == []
+
+
+# --------------------------------------------------------- corpus upload / /corpora
+
+# Distinct from the bundled index's "Photosynthesis..." passage (see
+# _build_index above), so a test can tell whether an answer's passages came
+# from the upload or from the base corpus just by which words show up.
+_BADGER_MD = (
+    b"## Habitat\n\n"
+    b"Badgers dig extensive burrow systems called setts, which can house "
+    b"multiple generations across many decades of continuous use.\n"
+)
+
+
+def _upload_client(tmp_path, monkeypatch, **config_kwargs) -> TestClient:
+    monkeypatch.setenv("RAGTRUST_UPLOAD_DIR", str(tmp_path / "uploads"))
+    config_kwargs.setdefault("retrieval_gate", -2.0)
+    config_kwargs.setdefault("abstain_threshold", 0.1)
+    return _client(tmp_path, **config_kwargs)
+
+
+def test_upload_corpus_returns_201_and_is_then_listed(tmp_path, monkeypatch):
+    client = _upload_client(tmp_path, monkeypatch)
+    resp = client.post("/corpora", files={"file": ("badgers.md", _BADGER_MD, "text/markdown")})
+    assert resp.status_code == 201
+    body = resp.json()
+    assert "corpus_id" in body
+    assert body["passages"] >= 1
+    assert body["filename"] == "badgers.md"
+
+    listing = client.get("/corpora").json()
+    assert any(r["corpus_id"] == body["corpus_id"] for r in listing)
+
+
+def test_answer_with_corpus_id_uses_uploaded_passages(tmp_path, monkeypatch):
+    client = _upload_client(
+        tmp_path, monkeypatch,
+        generator=StubGenerator(text="Badgers dig burrows called setts."),
+    )
+    corpus_id = client.post(
+        "/corpora", files={"file": ("badgers.md", _BADGER_MD, "text/markdown")}
+    ).json()["corpus_id"]
+
+    resp = client.post("/answer", json={"question": "What do badgers dig?", "corpus_id": corpus_id})
+    assert resp.status_code == 200
+    body = resp.json()
+    passage_text = " ".join(p["text"] for p in body["passages"])
+    assert "Badgers" in passage_text
+    assert "Photosynthesis" not in passage_text
+
+
+def test_answer_with_no_corpus_id_still_uses_the_base_corpus(tmp_path, monkeypatch):
+    # Existing behaviour (the base "Photosynthesis..." corpus) must be
+    # unaffected by the presence of the upload machinery.
+    client = _upload_client(tmp_path, monkeypatch)
+    resp = client.post("/answer", json={"question": "How does photosynthesis work?"})
+    assert resp.status_code == 200
+    passage_text = " ".join(p["text"] for p in resp.json()["passages"])
+    assert "Photosynthesis" in passage_text
+
+
+def test_answer_with_unknown_wellformed_corpus_id_returns_404(tmp_path, monkeypatch):
+    client = _upload_client(tmp_path, monkeypatch)
+    unknown_id = "deadbeef" * 4  # 32 hex chars, matches CORPUS_ID_RE, but was never created
+    resp = client.post("/answer", json={"question": "Anything?", "corpus_id": unknown_id})
+    assert resp.status_code == 404
+
+
+def test_answer_with_malformed_corpus_id_returns_404_not_500(tmp_path, monkeypatch):
+    client = _upload_client(tmp_path, monkeypatch)
+    resp = client.post("/answer", json={"question": "Anything?", "corpus_id": "../x"})
+    assert resp.status_code == 404
+
+
+def test_upload_oversized_returns_413(tmp_path, monkeypatch):
+    monkeypatch.setenv("RAGTRUST_MAX_UPLOAD_MB", "1")
+    client = _upload_client(tmp_path, monkeypatch)
+    oversized = b"x" * (2 * 1024 * 1024)
+    resp = client.post("/corpora", files={"file": ("big.txt", oversized, "text/plain")})
+    assert resp.status_code == 413
+
+
+def test_upload_unsupported_extension_returns_400(tmp_path, monkeypatch):
+    client = _upload_client(tmp_path, monkeypatch)
+    resp = client.post("/corpora", files={"file": ("report.docx", b"whatever bytes", "application/octet-stream")})
+    assert resp.status_code == 400
+
+
+def test_delete_corpus_then_answering_with_it_returns_404(tmp_path, monkeypatch):
+    client = _upload_client(tmp_path, monkeypatch)
+    corpus_id = client.post(
+        "/corpora", files={"file": ("badgers.md", _BADGER_MD, "text/markdown")}
+    ).json()["corpus_id"]
+
+    resp = client.delete(f"/corpora/{corpus_id}")
+    assert resp.status_code == 204
+
+    resp = client.post("/answer", json={"question": "Anything?", "corpus_id": corpus_id})
+    assert resp.status_code == 404
+
+
+def test_health_reports_corpora_count(tmp_path, monkeypatch):
+    client = _upload_client(tmp_path, monkeypatch)
+    assert client.get("/health").json()["corpora"] == 0
+    client.post("/corpora", files={"file": ("badgers.md", _BADGER_MD, "text/markdown")})
+    assert client.get("/health").json()["corpora"] == 1

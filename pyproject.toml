@@ -27,6 +27,10 @@ dependencies = [
     # Needed by fastapi.testclient.TestClient (tests/test_service.py), not by the
     # service itself at runtime.
     "httpx",
+    # FastAPI's UploadFile/File (POST /corpora, service.py) fail at
+    # route-definition time -- not just at request time -- without this
+    # installed, so it is a hard dependency, not an optional extra.
+    "python-multipart",
 ]
 
 [project.scripts]

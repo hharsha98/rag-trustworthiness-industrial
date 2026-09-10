@@ -58,6 +58,22 @@ h1{font-size:17px;letter-spacing:.02em;margin:0;font-weight:600}
   background:linear-gradient(var(--panel),var(--panel-2));
   padding:20px;box-shadow:0 24px 60px -30px rgba(0,0,0,.9);
 }
+.corpus{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.corpus select{
+  background:var(--void);border:1px solid var(--rule);border-radius:8px;
+  color:var(--ink);font:12.5px var(--mono);padding:9px 11px;outline:none;cursor:pointer;
+  transition:border-color .16s;max-width:220px;
+}
+.corpus select:focus{border-color:var(--beam)}
+.drop{
+  flex:1;min-width:160px;border:1px dashed var(--rule);border-radius:8px;
+  color:var(--faint);font-size:12.5px;padding:9px 14px;cursor:pointer;outline:none;
+  transition:border-color .16s,color .16s,background .16s;text-align:center;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.drop:hover,.drop:focus-visible{border-color:var(--beam);color:var(--dim)}
+.drop.drag{border-color:var(--beam);color:var(--ink);background:rgba(56,189,248,.08)}
+.confirm{color:var(--live);font:13px var(--mono);padding:6px 0}
 .ask{display:flex;gap:12px;align-items:stretch}
 .ask input{
   flex:1;background:var(--void);border:1px solid var(--rule);border-radius:10px;
@@ -194,6 +210,18 @@ footer a:hover{color:var(--beam);border-color:var(--beam)}
 </header>
 
 <div class="console">
+  <div class="corpus">
+    <label for="corpusSel" class="sr-only" style="position:absolute;left:-9999px">Corpus</label>
+    <select id="corpusSel" aria-label="corpus"></select>
+    <div class="drop" id="drop" role="button" tabindex="0" aria-label="Upload a document">drop a document, or click to browse</div>
+    <input type="file" id="file" accept=".pdf,.md,.txt" style="display:none">
+    <button class="ex" id="delCorpus" data-kind="out" style="display:none">delete corpus</button>
+  </div>
+  <div class="scan" id="uploadScan" aria-live="polite">
+    <div class="steps"><span class="step active" id="uploadLabel"></span></div>
+    <div class="trace"><i></i></div>
+  </div>
+  <div id="uploadMsg"></div>
   <div class="ask">
     <label for="q" class="sr-only" style="position:absolute;left:-9999px">Question</label>
     <input id="q" type="text" autocomplete="off" spellcheck="false"
@@ -359,8 +387,17 @@ function render(d){
   const ps = d.passages || [];
   if (ps.length){
     h += `<div class="card" style="margin-top:18px"><h2>Retrieved passages</h2>` +
-      ps.map((p,i) => `<div class="psg" id="p${i+1}">
-        <div class="meta">#${p.rank ?? i+1} · similarity ${f3(p.score) ?? "—"}</div>${esc(p.text)}</div>`).join("") +
+      ps.map((p,i) => {
+        let src = "";
+        if (p.source && p.source.source){
+          src = esc(p.source.source);
+          if (p.source.page !== undefined && p.source.page !== null && p.source.page !== ""){
+            src += " p." + esc(String(p.source.page));
+          }
+        }
+        return `<div class="psg" id="p${i+1}">
+        <div class="meta">#${p.rank ?? i+1}${src ? " · " + src : ""} · ${scoreLabel} ${f3(p.score) ?? "—"}</div>${esc(p.text)}</div>`;
+      }).join("") +
       `</div>`;
   }
 
@@ -378,19 +415,155 @@ function render(d){
   });
 }
 
+// What `p.score` actually IS depends on retrieval_mode, and the three are not
+// the same quantity on the same scale: dense returns a cosine similarity in
+// [0,1], sparse returns an unbounded BM25 score, and hybrid returns a
+// Reciprocal Rank Fusion score that is roughly 1/(60+rank) -- around 0.03 at
+// rank 1, which reads as "almost no match" if you label it "similarity".
+// Calling all three "similarity" would misreport the measurement, which is the
+// one thing this page must never do. (The abstention gate is unaffected: see
+// pipeline.py, which recomputes cosine explicitly rather than gating on this.)
+const SCORE_LABELS = {hybrid: "rrf", dense: "cosine", sparse: "bm25"};
+let scoreLabel = "score";
+fetch("/config").then(r => r.json())
+  .then(c => { scoreLabel = SCORE_LABELS[c.retrieval_mode] || "score"; })
+  .catch(() => {});
+
+let corpora = [];
+let currentCorpus = null;
+let demoPassages = null;
+const corpusSel = $("#corpusSel");
+
+function optionsHtml(){
+  return `<option value="">demo corpus</option>` +
+    corpora.map(c => `<option value="${esc(c.corpus_id)}"${c.corpus_id === currentCorpus ? " selected" : ""}>${esc(c.filename)} · ${c.passages}p</option>`).join("");
+}
+
+function loadCorpora(){
+  return fetch("/corpora").then(r => r.json()).then(list => {
+    corpora = Array.isArray(list) ? list : [];
+    if (currentCorpus && !corpora.some(c => c.corpus_id === currentCorpus)) currentCorpus = null;
+    corpusSel.innerHTML = optionsHtml();
+    corpusSel.value = currentCorpus || "";
+    $("#delCorpus").style.display = currentCorpus ? "" : "none";
+  }).catch(() => {});
+}
+
+corpusSel.onchange = () => {
+  currentCorpus = corpusSel.value || null;
+  $("#delCorpus").style.display = currentCorpus ? "" : "none";
+  if (currentCorpus){
+    const c = corpora.find(x => x.corpus_id === currentCorpus);
+    $("#npsg").textContent = c ? c.passages : "—";
+  } else {
+    $("#npsg").textContent = demoPassages ?? "—";
+  }
+};
+
+$("#delCorpus").onclick = async () => {
+  if (!currentCorpus) return;
+  const id = currentCorpus;
+  $("#delCorpus").disabled = true;
+  try{
+    const r = await fetch("/corpora/" + encodeURIComponent(id), {method:"DELETE"});
+    if (r.ok){
+      currentCorpus = null;
+      await loadCorpora();
+      $("#npsg").textContent = demoPassages ?? "—";
+      // The "Indexed <file> — N passages" line refers to a corpus that no
+      // longer exists; leaving it up contradicts the selector next to it.
+      clearUploadMsg();
+    }
+  }catch(e){}
+  finally{ $("#delCorpus").disabled = false; }
+};
+
+function showUploadMsg(html){
+  const el = $("#uploadMsg");
+  el.className = "confirm";
+  el.innerHTML = html;
+}
+function showUploadErr(detail){
+  const el = $("#uploadMsg");
+  el.className = "err";
+  el.innerHTML = esc(detail);
+}
+function clearUploadMsg(){
+  const el = $("#uploadMsg");
+  el.className = "";
+  el.innerHTML = "";
+}
+
+async function uploadFile(file){
+  clearUploadMsg();
+  $("#go").disabled = true;
+  $("#uploadLabel").textContent = "indexing " + file.name;
+  $("#uploadScan").classList.add("show");
+  const fd = new FormData();
+  fd.append("file", file);
+  try{
+    const r = await fetch("/corpora", {method:"POST", body: fd});
+    const d = await r.json().catch(() => ({}));
+    $("#uploadScan").classList.remove("show");
+    if (!r.ok){
+      showUploadErr(d.detail || ("HTTP " + r.status));
+      return;
+    }
+    currentCorpus = d.corpus_id;
+    await loadCorpora();
+    $("#npsg").textContent = d.passages ?? "—";
+    showUploadMsg(`Indexed <b>${esc(d.filename)}</b> — ${d.passages} passages`);
+  }catch(e){
+    $("#uploadScan").classList.remove("show");
+    showUploadErr("Upload failed — " + e.message);
+  }finally{
+    $("#go").disabled = false;
+  }
+}
+
+const dropZone = $("#drop"), fileInput = $("#file");
+dropZone.onclick = () => fileInput.click();
+dropZone.addEventListener("keydown", e => {
+  if (e.key === "Enter" || e.key === " "){ e.preventDefault(); fileInput.click(); }
+});
+fileInput.onchange = () => {
+  if (fileInput.files[0]) uploadFile(fileInput.files[0]);
+  fileInput.value = "";
+};
+["dragover","dragenter"].forEach(ev => dropZone.addEventListener(ev, e => {
+  e.preventDefault(); dropZone.classList.add("drag");
+}));
+["dragleave","drop"].forEach(ev => dropZone.addEventListener(ev, e => {
+  e.preventDefault(); dropZone.classList.remove("drag");
+}));
+dropZone.addEventListener("drop", e => {
+  const f = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (f) uploadFile(f);
+});
+
 async function ask(q){
   if (!q || !q.trim()) return;
   $("#go").disabled = true; startScan();
   try{
+    const body = {question:q};
+    if (currentCorpus) body.corpus_id = currentCorpus;
     const r = await fetch("/answer", {
       method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({question:q})
+      body: JSON.stringify(body)
     });
     const d = await r.json();
     stopScan();
     if (!r.ok){
-      $("#stage").innerHTML = `<div class="err">${esc(d.detail || ("HTTP " + r.status))}</div>`;
-      $("#stage").classList.add("show");
+      if (r.status === 404){
+        $("#stage").innerHTML = `<div class="err">Corpus no longer available — reset to demo corpus.</div>`;
+        $("#stage").classList.add("show");
+        currentCorpus = null;
+        await loadCorpora();
+        $("#npsg").textContent = demoPassages ?? "—";
+      } else {
+        $("#stage").innerHTML = `<div class="err">${esc(d.detail || ("HTTP " + r.status))}</div>`;
+        $("#stage").classList.add("show");
+      }
     } else render(d);
   }catch(e){
     stopScan();
@@ -404,9 +577,12 @@ $("#q").addEventListener("keydown", e => { if (e.key === "Enter") ask($("#q").va
 
 fetch("/health").then(r => r.json()).then(d => {
   $("#dot").className = "dot on"; $("#svc").textContent = "online";
+  demoPassages = d.passages ?? null;
   $("#npsg").textContent = d.passages ?? "—";
   $("#nli").textContent = (d.nli_model || "—").split("/").pop();
 }).catch(() => { $("#dot").className = "dot off"; $("#svc").textContent = "offline"; });
+
+loadCorpora();
 
 fetch("/api/examples").then(r => r.json()).then(list => {
   if (!Array.isArray(list) || !list.length) return;
@@ -414,7 +590,11 @@ fetch("/api/examples").then(r => r.json()).then(list => {
   const out = list.filter(x => x.category !== "pdf").slice(0, 2);
   $("#ex").innerHTML = [...inC, ...out].map(x =>
     `<button class="ex" data-kind="${x.category === "pdf" ? "in" : "out"}">${esc(x.question)}</button>`).join("");
-  document.querySelectorAll(".ex").forEach(b => b.onclick = () => { $("#q").value = b.textContent; ask(b.textContent); });
+  // Scoped to #ex, NOT document-wide: the delete-corpus button reuses the .ex
+  // class for its styling, and this runs after page load, so a document-wide
+  // selector would overwrite that button's own click handler -- clicking
+  // "delete corpus" would silently ask "delete corpus" as a question instead.
+  $("#ex").querySelectorAll(".ex").forEach(b => b.onclick = () => { $("#q").value = b.textContent; ask(b.textContent); });
 }).catch(() => {});
 
 $("#foot").textContent = "Answers are deterministic — the same question returns the same score.";

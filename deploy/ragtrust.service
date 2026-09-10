@@ -34,10 +34,16 @@ ExecStart=/home/admin/projects/rag-trustworthiness-industrial/.venv/bin/uvicorn 
 Restart=always
 RestartSec=5
 
-# Basic hardening -- the service only needs to read its own project directory
-# and talk to OmniRoute over loopback; it writes nothing outside /tmp.
+# Basic hardening -- the service reads its own project directory and talks to
+# OmniRoute over loopback. It also writes uploaded corpora (POST /corpora:
+# source file + FAISS index + metadata, one directory per corpus, swept on a
+# TTL/count cap -- see src/ragtrust/corpora.py) to StateDirectory=ragtrust
+# below, i.e. /var/lib/ragtrust, and RAGTRUST_UPLOAD_DIR (.env) points there.
+# Everything else stays read-only or /tmp-scoped.
 NoNewPrivileges=true
 PrivateTmp=true
+StateDirectory=ragtrust
+ReadWritePaths=/var/lib/ragtrust
 
 # journalctl -u ragtrust -f
 StandardOutput=journal

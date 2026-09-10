@@ -7,6 +7,11 @@ __pycache__/
 data/index/
 *.faiss
 
+# Uploaded corpora (src/ragtrust/corpora.py). This is the default RAGTRUST_UPLOAD_DIR
+# for a local run; deployments point it at /var/lib/ragtrust/corpora instead. Contains
+# whatever documents were uploaded to the running service -- never commit those.
+var/
+
 # HF / torch model caches
 .cache/
 huggingface/

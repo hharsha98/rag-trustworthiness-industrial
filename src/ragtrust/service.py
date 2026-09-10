@@ -16,12 +16,15 @@ from dataclasses import asdict, replace
 from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.concurrency import run_in_threadpool
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 
 from .config import Config
+from .corpora import CorpusStore
 from .generation.base import GenerationError
+from .ingest.validate import UploadRejected, max_upload_bytes
 from .pipeline import RAGTrustPipeline
 
 logger = logging.getLogger(__name__)
@@ -41,6 +44,10 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 class AnswerRequest(BaseModel):
     question: str = Field(..., min_length=1)
     k: Optional[int] = None
+    # Absent (None) means "the bundled corpus loaded at create_app" -- every
+    # existing client and test that never heard of corpus uploads keeps
+    # answering against that corpus with no change in behaviour.
+    corpus_id: Optional[str] = None
 
     @field_validator("question")
     @classmethod
@@ -76,6 +83,7 @@ class HealthResponse(BaseModel):
     passages: int
     embed_model: str
     nli_model: str
+    corpora: int
 
 
 # ------------------------------------------------------------------------- app
@@ -121,12 +129,24 @@ def create_app(index_dir: str, config: Config = None, generator: Any = None) -> 
         "from, per-claim grounding, and both trust aggregates."
     ))
     app.state.pipeline = pipeline
+    # Uploaded corpora persist across restarts under this directory (default
+    # var/corpora, inside the repo) unless RAGTRUST_UPLOAD_DIR points somewhere
+    # else -- deploy/ragtrust.service points it at /var/lib/ragtrust/corpora,
+    # the one path the hardened systemd unit grants write access to.
+    upload_root = os.environ.get("RAGTRUST_UPLOAD_DIR") or str(_REPO_ROOT / "var" / "corpora")
+    app.state.corpus_store = CorpusStore(upload_root)
 
-    def _pipeline_for_k(k: Optional[int]) -> RAGTrustPipeline:
-        """A pipeline reflecting a per-request `k` override, sharing every
-        heavy resource (retriever/index, embedder, nli, generator) with the
-        base pipeline so an override never re-embeds or reloads anything."""
-        base = app.state.pipeline
+    def _pipeline_for_request(corpus_id: Optional[str], k: Optional[int]) -> RAGTrustPipeline:
+        """Select the corpus pipeline (the bundled base one when `corpus_id`
+        is None), then apply the `k` override to whichever pipeline that was."""
+        if corpus_id is None:
+            base = app.state.pipeline
+        else:
+            base = app.state.corpus_store.pipeline_for(corpus_id, app.state.pipeline)
+
+        # A pipeline reflecting a per-request `k` override, sharing every
+        # heavy resource (retriever/index, embedder, nli, generator) with the
+        # selected pipeline so an override never re-embeds or reloads anything.
         if k is None or k == base.config.k:
             return base
         scoped = RAGTrustPipeline(
@@ -146,6 +166,7 @@ def create_app(index_dir: str, config: Config = None, generator: Any = None) -> 
             "passages": len(p.passages_text),
             "embed_model": p.config.embed_model,
             "nli_model": p.config.nli_model,
+            "corpora": len(app.state.corpus_store.list()),
         }
 
     @app.get("/config")
@@ -154,7 +175,14 @@ def create_app(index_dir: str, config: Config = None, generator: Any = None) -> 
 
     @app.post("/answer", response_model=AnswerResponse)
     def answer(req: AnswerRequest) -> dict:
-        active = _pipeline_for_k(req.k)
+        try:
+            active = _pipeline_for_request(req.corpus_id, req.k)
+        except KeyError:
+            # Covers both an unknown-but-well-formed id and a malformed one
+            # (CorpusStore._resolve raises KeyError for both) -- either way the
+            # client asked for a corpus that is not there to answer from, which
+            # is a 404, not a 500.
+            raise HTTPException(status_code=404, detail=f"No such corpus: {req.corpus_id}")
         start = time.perf_counter()
         try:
             result = active.answer(req.question)
@@ -197,6 +225,65 @@ def create_app(index_dir: str, config: Config = None, generator: Any = None) -> 
             {"question": question, "category": entry.get("category") if isinstance(entry, dict) else None}
             for question, entry in data.items()
         ]
+
+    # These three routes must be registered before the StaticFiles mount below:
+    # Starlette matches routes in registration order and that mount is a
+    # catch-all at "/", so anything registered after it would never be reached.
+    @app.post("/corpora", status_code=201)
+    async def upload_corpus(file: UploadFile = File(...)) -> dict:
+        limit = max_upload_bytes()
+        chunks = []
+        total = 0
+        # Content-Length is client-supplied and cannot be trusted to match the
+        # actual body -- a client can lie about it (or omit it, under chunked
+        # transfer encoding) and send more bytes anyway. Enforcing the limit
+        # against bytes actually read, and aborting mid-stream the moment they
+        # cross it, means a hostile upload is capped at ~1 MiB over the limit
+        # rather than fully buffered into memory first.
+        while True:
+            chunk = await file.read(1024 * 1024)
+            if not chunk:
+                break
+            total += len(chunk)
+            if total > limit:
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"Upload exceeds the {limit}-byte limit.",
+                )
+            chunks.append(chunk)
+        data = b"".join(chunks)
+
+        start = time.perf_counter()
+        try:
+            # `create` chunks and embeds the whole document -- seconds to minutes of
+            # blocking CPU work. This route has to be `async def` to stream the body
+            # above (`await file.read`), which means its body runs ON the event loop,
+            # so calling `create` directly here would stall every other request in the
+            # process -- /health, /answer, the dashboard's static files -- for the full
+            # duration of the indexing. The other routes in this module are plain
+            # `def`, which FastAPI already runs in a threadpool; this hands `create`
+            # to that same threadpool so an upload is slow only for the uploader.
+            record = await run_in_threadpool(
+                app.state.corpus_store.create, file.filename, data, app.state.pipeline,
+            )
+        except UploadRejected as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+        seconds = time.perf_counter() - start
+
+        payload = record.to_dict()
+        payload["seconds"] = round(seconds, 2)
+        return payload
+
+    @app.get("/corpora")
+    def list_corpora() -> list:
+        return [r.to_dict() for r in app.state.corpus_store.list()]
+
+    @app.delete("/corpora/{corpus_id}", status_code=204)
+    def delete_corpus(corpus_id: str) -> None:
+        try:
+            app.state.corpus_store.delete(corpus_id)
+        except KeyError:
+            raise HTTPException(status_code=404, detail=f"No such corpus: {corpus_id}")
 
     # Mounted LAST and at "/" so it never shadows the API routes above: Starlette
     # matches routes in registration order and returns on the first match, so
