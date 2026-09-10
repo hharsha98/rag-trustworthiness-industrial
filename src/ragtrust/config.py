@@ -127,6 +127,22 @@ class Config:
     answer_relevance: bool = False
     answer_relevance_n_questions: int = 3
 
+    # Contextual Retrieval (Anthropic's method, ingest/contextualize.py): before
+    # embedding/BM25-indexing, ask an LLM for a one-sentence blurb situating each
+    # chunk in its document, and prepend it to the chunk for retrieval only (the
+    # original chunk is kept separately as `passage_source_text` and is what NLI,
+    # generation, and citations always see -- see pipeline.py::answer()).
+    #
+    # OFF by default for the same kind of reason `rerank` and `answer_relevance`
+    # are off: cost, not doubt. This issues ONE LLM call per chunk at INDEX time
+    # (not per query), so indexing a large corpus gets proportionally slower and
+    # more expensive the first time it is built. That is a deliberate cost
+    # decision for your deployment to make. If the configured generator has no
+    # `complete` method, or a call fails, affected chunks silently fall back to
+    # uncontextualised text rather than failing the index build.
+    contextual: bool = False
+    contextual_model: str = "llama3.2:3b"
+
     def __post_init__(self):
         if self.chunk_window < 1 or self.chunk_stride < 1:
             raise ValueError("chunk_window and chunk_stride must both be >= 1")

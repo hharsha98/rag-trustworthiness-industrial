@@ -229,3 +229,37 @@ def test_api_key_never_appears_in_unparseable_response_exception_message(monkeyp
         assert False, "expected GenerationError"
     except GenerationError as exc:
         assert secret not in str(exc)
+
+
+# --------------------------------------------------------------------- complete
+
+
+def test_complete_returns_raw_model_text_via_shared_post(monkeypatch):
+    captured = {}
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        captured["json"] = json
+        return _FakeResponse(_chat_response("A one-sentence blurb about the document."))
+
+    monkeypatch.setattr(requests, "post", fake_post)
+
+    gen = OpenAICompatGenerator(base_url="http://127.0.0.1:20128", api_key="k")
+    text = gen.complete("Summarise this chunk in one sentence.")
+
+    assert text == "A one-sentence blurb about the document."
+    # complete() reuses _post -- same request shape as generate()/generate_questions().
+    assert captured["json"]["messages"][0]["content"] == "Summarise this chunk in one sentence."
+
+
+def test_complete_raises_generation_error_on_backend_failure(monkeypatch):
+    def fake_post(url, headers=None, json=None, timeout=None):
+        return _FakeResponse({"error": "boom"}, status_code=500)
+
+    monkeypatch.setattr(requests, "post", fake_post)
+
+    gen = OpenAICompatGenerator(base_url="http://127.0.0.1:20128", api_key="k")
+    try:
+        gen.complete("Summarise this chunk.")
+        assert False, "expected GenerationError"
+    except GenerationError:
+        pass

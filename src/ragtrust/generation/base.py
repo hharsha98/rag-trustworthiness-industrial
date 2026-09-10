@@ -28,6 +28,19 @@ class Generator(Protocol):
         """
         ...
 
+    def complete(self, prompt: str) -> str:
+        """OPTIONAL. Raw single-turn completion: send `prompt`, return the model's
+        text verbatim -- no citation prompting/parsing, unlike `generate`.
+
+        Used by `ingest/contextualize.py` to ask for a one-sentence blurb situating
+        a chunk in its document before the chunk is embedded/BM25-indexed. Same
+        optionality contract as `generate_questions`: a backend without a second
+        call available simply does not define it, and `contextualize_chunks`
+        degrades to the uncontextualised chunk rather than raising when this
+        method is absent or a call to it fails.
+        """
+        ...
+
 
 class GenerationError(Exception):
     """Raised when a generation backend is unreachable, mis-configured, or

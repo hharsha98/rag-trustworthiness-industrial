@@ -23,9 +23,14 @@ class StubGenerator:
         self.text = text
         self.citations = citations or {}
         self.calls = 0
+        # The passages `answer()` actually handed to `generate()` on the most
+        # recent call -- used by the contextual-retrieval invariant test to
+        # confirm the generator never sees an LLM-written blurb.
+        self.last_passages = None
 
     def generate(self, query, passages):
         self.calls += 1
+        self.last_passages = passages
         return GeneratedAnswer(text=self.text, citations=self.citations)
 
 
@@ -174,3 +179,124 @@ def test_is_trustworthy_is_false_whenever_abstained():
 
     assert result.abstained is True
     assert result.is_trustworthy is False
+
+
+# ------------------------------------------------------ contextual retrieval
+
+
+class RecordingFakeNLI:
+    """Wraps FakeNLI's scoring but records every premise it is ever asked to
+    score, so a test can assert a forbidden string never reaches NLI."""
+
+    def __init__(self):
+        from ragtrust.metrics.nli import FakeNLI
+
+        self._inner = FakeNLI()
+        self.premises_seen: list = []
+
+    def probs(self, premise, hypothesis):
+        self.premises_seen.append(premise)
+        return self._inner.probs(premise, hypothesis)
+
+    def batch_probs(self, pairs):
+        self.premises_seen.extend(p for p, _ in pairs)
+        return self._inner.batch_probs(pairs)
+
+
+def test_contextual_blurb_never_reaches_nli_generator_or_output():
+    """THE invariant this feature exists to protect (see pipeline.py::answer()'s
+    `replace(p, text=self.source_text(p.id))` line and ingest/contextualize.py's
+    module docstring): an LLM-generated blurb used to improve retrieval must
+    never reach the NLI premise, the generator, citations, or anything in the
+    JSON result. If it did, a claim could be scored "faithful" because it is
+    entailed by text the model invented rather than by the corpus.
+    """
+    sentinel = "ZZSENTINEL topic overview."
+    source = "Photosynthesis converts sunlight into chemical energy in plants."
+    contextualized_text = f"{sentinel} {source}"
+
+    nli = RecordingFakeNLI()
+    generator = StubGenerator(text="Photosynthesis converts sunlight into chemical energy.")
+    pipeline = _pipeline(retrieval_gate=-2.0, abstain_threshold=0.1)
+    pipeline._nli = nli
+    pipeline._generator = generator
+    # Installed directly (bypassing contextualize_chunks) so the test controls
+    # the exact contextualised/source pair rather than depending on an LLM.
+    pipeline._install(
+        [contextualized_text], [{"source": "doc.md", "page": 1}], [source]
+    )
+
+    assert sentinel in pipeline.passages_text[0]
+    assert sentinel not in pipeline.passage_source_text[0]
+
+    result = pipeline.answer("How does photosynthesis work?")
+
+    assert result.abstained is False
+
+    for premise in nli.premises_seen:
+        assert sentinel not in premise, "sentinel blurb reached an NLI premise"
+
+    assert generator.last_passages is not None
+    for p in generator.last_passages:
+        assert sentinel not in getattr(p, "text", p), "sentinel blurb reached the generator"
+
+    for p in result.passages:
+        assert sentinel not in getattr(p, "text", p), "sentinel blurb reached result.passages"
+
+    dumped = json.dumps(result.to_dict())
+    assert sentinel not in dumped, "sentinel blurb reached to_dict() output"
+
+
+def test_source_text_falls_back_to_passages_text_when_out_of_range():
+    pipeline = _pipeline()
+    pipeline.index_texts(["Some passage about robotics."])
+    # passage_source_text has length 1; index 5 is out of range for it, so
+    # source_text() must fall back to passages_text rather than raising.
+    assert pipeline.source_text(0) == "Some passage about robotics."
+
+
+def test_save_and_load_round_trips_passage_source_text(tmp_path):
+    pipeline = _pipeline(embed_model="fake-embed-v1")
+    texts = ["ZZBLURB one. Passage one about robotics.", "ZZBLURB two. Passage two about nets."]
+    source_texts = ["Passage one about robotics.", "Passage two about nets."]
+    meta = [{"source": "doc.md", "page": 1}, {"source": "doc.md", "page": 2}]
+    pipeline._install(texts, meta, source_texts)
+    pipeline.save(str(tmp_path))
+
+    stored = json.loads((tmp_path / "passages.json").read_text())
+    assert stored["source_passages"] == source_texts
+
+    reloaded = _pipeline(embed_model="fake-embed-v1")
+    reloaded.load(str(tmp_path))
+
+    assert reloaded.passages_text == texts
+    assert reloaded.passage_source_text == source_texts
+
+
+def test_load_without_source_passages_key_is_backward_compatible(tmp_path):
+    # Simulates an index persisted before this feature existed: passages.json
+    # has no "source_passages" key at all.
+    pipeline = _pipeline(embed_model="fake-embed-v1")
+    texts = ["Passage one about robotics.", "Passage two about neural networks."]
+    pipeline.index_texts(texts)
+    pipeline.save(str(tmp_path))
+
+    stored = json.loads((tmp_path / "passages.json").read_text())
+    del stored["source_passages"]
+    (tmp_path / "passages.json").write_text(json.dumps(stored))
+
+    reloaded = _pipeline(embed_model="fake-embed-v1")
+    reloaded.load(str(tmp_path))
+
+    assert reloaded.passage_source_text == reloaded.passages_text == texts
+
+
+def test_config_contextual_defaults_off_and_index_corpus_is_unchanged():
+    # Config().contextual is False, so index_corpus must produce byte-for-byte
+    # the same passages as before this feature existed -- no generator call,
+    # no blurb, nothing.
+    plain = _pipeline()
+    plain.index_corpus(str(DEMO_CORPUS))
+
+    assert plain.config.contextual is False
+    assert plain.passage_source_text == plain.passages_text

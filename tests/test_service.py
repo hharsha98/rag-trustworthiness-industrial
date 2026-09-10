@@ -280,3 +280,123 @@ def test_health_reports_corpora_count(tmp_path, monkeypatch):
     assert client.get("/health").json()["corpora"] == 0
     client.post("/corpora", files={"file": ("badgers.md", _BADGER_MD, "text/markdown")})
     assert client.get("/health").json()["corpora"] == 1
+
+
+# ---------------------------------------------------- upload abuse protection
+#
+# create_app reads RAGTRUST_UPLOAD_RATE_LIMIT / _GLOBAL_LIMIT / _RATE_WINDOW /
+# _TOKEN / RAGTRUST_TRUST_PROXY once, at app-creation time (see ratelimit.py
+# and service.py::create_app), so every test below sets the env var(s) it
+# needs BEFORE calling _upload_client -- which builds the app -- rather than
+# after.
+
+
+def test_sixth_upload_in_window_returns_429_with_retry_after(tmp_path, monkeypatch):
+    monkeypatch.setenv("RAGTRUST_UPLOAD_RATE_LIMIT", "5")
+    client = _upload_client(tmp_path, monkeypatch)
+    for _ in range(5):
+        resp = client.post("/corpora", files={"file": ("badgers.md", _BADGER_MD, "text/markdown")})
+        assert resp.status_code == 201
+
+    resp = client.post("/corpora", files={"file": ("badgers.md", _BADGER_MD, "text/markdown")})
+    assert resp.status_code == 429
+    assert "Retry-After" in resp.headers
+    retry_after = int(resp.headers["Retry-After"])
+    assert 0 < retry_after <= 3600
+    assert "5" in resp.json()["detail"]
+
+
+def test_global_limit_trips_even_with_a_different_forwarded_ip_per_request(tmp_path, monkeypatch):
+    # The scenario the global limiter exists for: under IPv6 a single host can
+    # control a /64 (billions of addresses), so a per-client limit alone
+    # bounds nothing if every request looks like a new client. Each request
+    # here presents a distinct X-Forwarded-For (trust_proxy=True, so
+    # client_key actually uses it) -- the per-client limiter never sees the
+    # same key twice, yet the shared global budget still runs out.
+    monkeypatch.setenv("RAGTRUST_TRUST_PROXY", "true")
+    monkeypatch.setenv("RAGTRUST_UPLOAD_RATE_LIMIT", "100")  # generous: must not be what trips
+    monkeypatch.setenv("RAGTRUST_UPLOAD_GLOBAL_LIMIT", "3")
+    client = _upload_client(tmp_path, monkeypatch)
+
+    for i in range(3):
+        resp = client.post(
+            "/corpora",
+            files={"file": ("badgers.md", _BADGER_MD, "text/markdown")},
+            headers={"X-Forwarded-For": f"2001:db8::{i:x}"},
+        )
+        assert resp.status_code == 201
+
+    resp = client.post(
+        "/corpora",
+        files={"file": ("badgers.md", _BADGER_MD, "text/markdown")},
+        headers={"X-Forwarded-For": "2001:db8::ffff"},
+    )
+    assert resp.status_code == 429
+    assert "Retry-After" in resp.headers
+
+
+def test_upload_token_unset_keeps_uploads_public(tmp_path, monkeypatch):
+    monkeypatch.delenv("RAGTRUST_UPLOAD_TOKEN", raising=False)
+    client = _upload_client(tmp_path, monkeypatch)
+    resp = client.post("/corpora", files={"file": ("badgers.md", _BADGER_MD, "text/markdown")})
+    assert resp.status_code == 201
+
+
+def test_upload_token_set_rejects_missing_or_wrong_and_accepts_correct(tmp_path, monkeypatch):
+    monkeypatch.setenv("RAGTRUST_UPLOAD_TOKEN", "s3cr3t-token")
+    client = _upload_client(tmp_path, monkeypatch)
+
+    resp = client.post("/corpora", files={"file": ("badgers.md", _BADGER_MD, "text/markdown")})
+    assert resp.status_code == 401
+    assert resp.json()["detail"] == "Missing or invalid upload token."
+
+    resp = client.post(
+        "/corpora", files={"file": ("badgers.md", _BADGER_MD, "text/markdown")},
+        headers={"X-Upload-Token": "wrong-guess"},
+    )
+    assert resp.status_code == 401
+
+    resp = client.post(
+        "/corpora", files={"file": ("badgers.md", _BADGER_MD, "text/markdown")},
+        headers={"X-Upload-Token": "s3cr3t-token"},
+    )
+    assert resp.status_code == 201
+
+
+def test_correct_token_bypasses_both_rate_limiters(tmp_path, monkeypatch):
+    # A valid token marks the caller as an authenticated operator, not
+    # anonymous traffic -- both limits stay at 1 for this test, and every
+    # request still succeeds because the token check short-circuits before
+    # either limiter is ever consulted.
+    monkeypatch.setenv("RAGTRUST_UPLOAD_TOKEN", "s3cr3t-token")
+    monkeypatch.setenv("RAGTRUST_UPLOAD_RATE_LIMIT", "1")
+    monkeypatch.setenv("RAGTRUST_UPLOAD_GLOBAL_LIMIT", "1")
+    client = _upload_client(tmp_path, monkeypatch)
+
+    for _ in range(3):
+        resp = client.post(
+            "/corpora", files={"file": ("badgers.md", _BADGER_MD, "text/markdown")},
+            headers={"X-Upload-Token": "s3cr3t-token"},
+        )
+        assert resp.status_code == 201
+
+
+def test_corpora_limits_returns_policy_and_never_the_token(tmp_path, monkeypatch):
+    monkeypatch.setenv("RAGTRUST_UPLOAD_TOKEN", "s3cr3t-token")
+    monkeypatch.setenv("RAGTRUST_UPLOAD_RATE_LIMIT", "5")
+    monkeypatch.setenv("RAGTRUST_UPLOAD_GLOBAL_LIMIT", "30")
+    monkeypatch.setenv("RAGTRUST_UPLOAD_RATE_WINDOW", "3600")
+    client = _upload_client(tmp_path, monkeypatch)
+
+    resp = client.get("/corpora/limits")
+    assert resp.status_code == 200
+    assert resp.json() == {
+        "per_client": 5, "global": 30, "window_seconds": 3600, "token_required": True,
+    }
+    assert "s3cr3t-token" not in resp.text
+
+
+def test_corpora_limits_reports_token_not_required_by_default(tmp_path, monkeypatch):
+    monkeypatch.delenv("RAGTRUST_UPLOAD_TOKEN", raising=False)
+    client = _upload_client(tmp_path, monkeypatch)
+    assert client.get("/corpora/limits").json()["token_required"] is False

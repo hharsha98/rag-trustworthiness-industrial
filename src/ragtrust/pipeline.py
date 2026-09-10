@@ -12,11 +12,12 @@ from __future__ import annotations
 
 import json
 import warnings
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from .config import Config
 from .generation.base import GenerationError
+from .ingest.contextualize import contextualize_chunks
 from .ingest.loader import chunk_passages, load_corpus
 from .metrics.aggregate import aggregate_arithmetic, aggregate_geometric
 from .metrics.attribution import attribution
@@ -80,6 +81,12 @@ class RAGTrustPipeline:
         self._embedder = embedder
         self._retriever = None
         self.passages_text: list = []
+        # The untouched chunk text, parallel to `passages_text` (same index).
+        # When Config.contextual is off these are identical; when it's on,
+        # `passages_text[i]` carries an LLM-written blurb for retrieval only
+        # and `passage_source_text[i]` is what everything else must see --
+        # see the invariant comment in `answer()` and in ingest/contextualize.py.
+        self.passage_source_text: list = []
         # passage index -> {"source": str, "page": int}, for citing back to origin
         self.passage_meta: dict = {}
 
@@ -139,17 +146,40 @@ class RAGTrustPipeline:
 
     # ----------------------------------------------------------------- indexing
 
+    def _contextualize_if_enabled(self, chunks: list, document_text: str) -> tuple:
+        """Apply Contextual Retrieval to `chunks` when `Config.contextual` is on
+        and a generator is available; otherwise a no-op.
+
+        Returns `(texts, source_texts)`. When contextualisation does not run,
+        `source_texts` is `None` so `_install` falls back to `texts == source_texts`
+        -- the same behaviour as before this feature existed, byte-for-byte,
+        which is the point: `Config.contextual` defaults to False specifically
+        so existing callers see no change (see Config.contextual's docstring).
+        """
+        if not (self.config.contextual and self._generator is not None):
+            return [c["text"] for c in chunks], None
+        contextualized = contextualize_chunks(
+            chunks, document_text, self._generator,
+            model_tag=self.config.contextual_model,
+        )
+        return (
+            [c["text"] for c in contextualized],
+            [c["source_text"] for c in contextualized],
+        )
+
     def index_corpus(self, path: str) -> "RAGTrustPipeline":
         """Index one corpus file (.pdf, .md or .txt) using windowed chunking."""
+        pages = load_corpus(str(path))
         chunks = chunk_passages(
-            load_corpus(str(path)),
+            pages,
             window=self.config.chunk_window,
             stride=self.config.chunk_stride,
             min_chars=self.config.chunk_min_chars,
         )
         name = Path(path).name
         meta = [{"source": name, "page": c["page"]} for c in chunks]
-        return self._install([c["text"] for c in chunks], meta)
+        texts, source_texts = self._contextualize_if_enabled(chunks, "\n".join(pages))
+        return self._install(texts, meta, source_texts)
 
     def index_dir(self, directory: str, pattern: str = "*") -> "RAGTrustPipeline":
         """Index every supported document under `directory`, keeping provenance."""
@@ -160,17 +190,21 @@ class RAGTrustPipeline:
             raise FileNotFoundError(
                 f"No {'/'.join(CORPUS_SUFFIXES)} files found under {root}")
         texts: list = []
+        source_texts: list = []
         meta: list = []
         for f in files:
+            pages = load_corpus(str(f))
             chunks = chunk_passages(
-                load_corpus(str(f)),
+                pages,
                 window=self.config.chunk_window,
                 stride=self.config.chunk_stride,
                 min_chars=self.config.chunk_min_chars,
             )
-            texts += [c["text"] for c in chunks]
+            file_texts, file_source_texts = self._contextualize_if_enabled(chunks, "\n".join(pages))
+            texts += file_texts
+            source_texts += file_source_texts if file_source_texts is not None else file_texts
             meta += [{"source": str(f.relative_to(root)), "page": c["page"]} for c in chunks]
-        return self._install(texts, meta)
+        return self._install(texts, meta, source_texts)
 
     def index_pdf(self, path: str) -> "RAGTrustPipeline":
         """Backwards-compatible alias for `index_corpus`.
@@ -184,13 +218,27 @@ class RAGTrustPipeline:
         """Index passages the caller has already prepared. No further chunking."""
         return self._install(list(texts), meta)
 
-    def _install(self, texts: list, meta: list = None) -> "RAGTrustPipeline":
+    def _install(self, texts: list, meta: list = None, source_texts: list = None) -> "RAGTrustPipeline":
         if not texts:
             raise ValueError("Refusing to build an empty index.")
         self.passages_text = texts
+        # No `source_texts` (the common, non-contextual case) means retrieval text
+        # IS the source text -- there is nothing an LLM added to strip back out.
+        self.passage_source_text = list(source_texts) if source_texts else list(texts)
         self.passage_meta = {i: (meta[i] if meta else {}) for i in range(len(texts))}
         self.retriever.build(self.passages_text)
         return self
+
+    def source_text(self, passage_id: int) -> str:
+        """The untouched chunk for `passage_id`, never the contextualised blurb.
+
+        Falls back to `passages_text[passage_id]` only when `passage_id` is out
+        of range for `passage_source_text` -- e.g. an index persisted before
+        this feature existed and loaded via `load()`'s backward-compat path.
+        """
+        if 0 <= passage_id < len(self.passage_source_text):
+            return self.passage_source_text[passage_id]
+        return self.passages_text[passage_id]
 
     # -------------------------------------------------------------- persistence
 
@@ -224,6 +272,7 @@ class RAGTrustPipeline:
             "retrieval_mode": self.config.retrieval_mode,
             "passages": self.passages_text,
             "meta": {str(k): v for k, v in self.passage_meta.items()},
+            "source_passages": self.passage_source_text,
         }))
         dense = self._dense_component(self.retriever)
         if dense is None:
@@ -248,6 +297,11 @@ class RAGTrustPipeline:
                 f"comparable -- rebuild the index, or match the model.")
         self.passages_text = payload["passages"]
         self.passage_meta = {int(k): v for k, v in payload.get("meta", {}).items()}
+        # `source_passages` postdates this feature -- an index written before it
+        # existed has no such key, and its `passages` were never contextualised
+        # anyway, so falling back to them there keeps a pre-existing index file
+        # loadable without a migration step.
+        self.passage_source_text = payload.get("source_passages") or list(self.passages_text)
 
         retriever = self.retriever
         dense = self._dense_component(retriever)
@@ -277,6 +331,24 @@ class RAGTrustPipeline:
             raise ValueError("Nothing indexed. Call index_corpus/index_dir/load first.")
 
         retrieved = self.retriever.search(query, self.config.k)
+        # *** THE ENFORCEMENT POINT OF THE CONTEXTUAL-RETRIEVAL INVARIANT ***
+        # `retriever.search` returns passages carrying whatever text was
+        # indexed -- under Config.contextual=True that is an LLM-WRITTEN blurb
+        # prepended to the chunk (ingest/contextualize.py), because the blurb
+        # is what makes retrieval better. That blurb is not a fact: the model
+        # can invent an entity, a date, a relationship that isn't there. This
+        # line throws it away and swaps in the untouched source chunk for
+        # every retrieved passage BEFORE anything below reads `.text` --
+        # the cosine gate, `generator.generate`, NLI premises in `faithfulness`/
+        # `attribution`, citations, and `to_dict()`. If a generated blurb ever
+        # reached the NLI model as an entailment premise, a claim could be
+        # scored "faithful" because it is entailed by text the model invented
+        # rather than by the corpus -- exactly the defect this repository
+        # exists to detect. Moving this line, or reading retrieval-time text
+        # anywhere past it, silently reintroduces that defect. When
+        # Config.contextual is off this is a no-op: `source_text(id)` returns
+        # the same string `retriever.search` already put in `p.text`.
+        retrieved = [replace(p, text=self.source_text(p.id)) for p in retrieved]
         passage_texts = [p.text for p in retrieved]
         sources = {getattr(p, "id", None): self.passage_meta.get(getattr(p, "id", None), {})
                    for p in retrieved}

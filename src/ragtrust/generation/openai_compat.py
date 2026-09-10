@@ -122,3 +122,9 @@ class OpenAICompatGenerator:
         prompt = build_question_prompt(answer, n)
         text = self._post(prompt)
         return parse_questions(text, n)
+
+    def complete(self, prompt: str) -> str:
+        """Raw completion (generation/base.py::Generator.complete) -- used by
+        ingest/contextualize.py for indexing-time blurb generation. No citation
+        prompting/parsing: the caller gets the model's text verbatim."""
+        return self._post(prompt)

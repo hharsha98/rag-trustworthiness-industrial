@@ -137,8 +137,10 @@ class OllamaGenerator:
     def _options(self) -> dict:
         return {"temperature": self.temperature, "seed": self.seed}
 
-    def generate(self, query: str, passages: list) -> GeneratedAnswer:
-        prompt = build_prompt(query, passages)
+    def _post(self, prompt: str) -> str:
+        # Single transport path for every prompt this backend sends (generate,
+        # generate_questions, complete) so the timeout/GenerationError handling
+        # can't drift between them -- see the module docstring.
         try:
             response = requests.post(
                 self.url,
@@ -151,7 +153,11 @@ class OllamaGenerator:
             raise GenerationError(f"Ollama backend unreachable at {self.url}: {exc}") from exc
 
         data = response.json()
-        text = data.get("response", "")
+        return data.get("response", "")
+
+    def generate(self, query: str, passages: list) -> GeneratedAnswer:
+        prompt = build_prompt(query, passages)
+        text = self._post(prompt)
         return GeneratedAnswer(text=text, citations=parse_citations(text))
 
     def generate_questions(self, answer: str, n: int) -> list:
@@ -164,17 +170,11 @@ class OllamaGenerator:
         answering.
         """
         prompt = build_question_prompt(answer, n)
-        try:
-            response = requests.post(
-                self.url,
-                json={"model": self.model, "prompt": prompt, "stream": False,
-                      "options": self._options()},
-                timeout=self.timeout,
-            )
-            response.raise_for_status()
-        except requests.RequestException as exc:
-            raise GenerationError(f"Ollama backend unreachable at {self.url}: {exc}") from exc
-
-        data = response.json()
-        text = data.get("response", "")
+        text = self._post(prompt)
         return parse_questions(text, n)
+
+    def complete(self, prompt: str) -> str:
+        """Raw completion (generation/base.py::Generator.complete) -- used by
+        ingest/contextualize.py for indexing-time blurb generation. No citation
+        prompting/parsing: the caller gets the model's text verbatim."""
+        return self._post(prompt)

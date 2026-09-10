@@ -8,6 +8,7 @@ backend or a bad request produce a non-200 status.
 """
 from __future__ import annotations
 
+import hmac
 import json
 import logging
 import os
@@ -16,7 +17,7 @@ from dataclasses import asdict, replace
 from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
@@ -26,6 +27,7 @@ from .corpora import CorpusStore
 from .generation.base import GenerationError
 from .ingest.validate import UploadRejected, max_upload_bytes
 from .pipeline import RAGTrustPipeline
+from .ratelimit import SlidingWindowLimiter, client_key
 
 logger = logging.getLogger(__name__)
 
@@ -136,6 +138,57 @@ def create_app(index_dir: str, config: Config = None, generator: Any = None) -> 
     upload_root = os.environ.get("RAGTRUST_UPLOAD_DIR") or str(_REPO_ROOT / "var" / "corpora")
     app.state.corpus_store = CorpusStore(upload_root)
 
+    # --- Upload abuse protection. The service is about to be exposed publicly
+    # with no authentication, and POST /corpora both writes to disk and spends
+    # CPU indexing -- see ratelimit.py's module docstring for the full picture.
+    # Read once at app-creation time (not per-request) so a single process's
+    # policy is stable for its lifetime; tests that need a different policy
+    # build a fresh app rather than mutating environ mid-run.
+    upload_rate_limit = int(os.environ.get("RAGTRUST_UPLOAD_RATE_LIMIT", "5"))
+    upload_rate_window = float(os.environ.get("RAGTRUST_UPLOAD_RATE_WINDOW", "3600"))
+    upload_global_limit = int(os.environ.get("RAGTRUST_UPLOAD_GLOBAL_LIMIT", "30"))
+    app.state.upload_limiter = SlidingWindowLimiter(upload_rate_limit, upload_rate_window)
+    # A separate limiter keyed by one constant, not per-client. A per-client
+    # limit assumes source addresses are a scarce resource; under IPv6 a
+    # single host routinely controls a /64 -- billions of addresses -- so
+    # per-client limiting alone bounds nothing in the case that matters most.
+    # This global cap is what actually bounds total disk and CPU spent on
+    # uploads; the per-client limiter above is what keeps one ordinary
+    # (non-adversarial, single-address) abuser from consuming the whole
+    # global budget by itself.
+    app.state.upload_global_limiter = SlidingWindowLimiter(upload_global_limit, upload_rate_window)
+    _GLOBAL_UPLOAD_KEY = "__global__"
+    # False by default: trusting X-Forwarded-For unconditionally would let any
+    # direct caller forge its own client identity and bypass the per-client
+    # limiter entirely (see client_key's docstring). Set RAGTRUST_TRUST_PROXY=true
+    # only when Caddy (deploy/Caddyfile.snippet) is the sole path to this
+    # process and is known to overwrite the header on every request.
+    trust_proxy = os.environ.get("RAGTRUST_TRUST_PROXY", "").strip().lower() in ("1", "true", "yes")
+    # Unset or empty means the feature is OFF and uploads stay public -- the
+    # demo (this dashboard, open with no login) has to keep working for
+    # someone who just loads the page with no token in hand. This default is
+    # deliberate, not an oversight: an operator who wants the token enforced
+    # opts in by setting it.
+    upload_token = os.environ.get("RAGTRUST_UPLOAD_TOKEN", "")
+
+    def _retry_after_message(limit: int, window_seconds: float, retry_after: int) -> str:
+        """Render `detail` for a 429 in plain language, per-hour phrasing when
+        the window is an hour (the default and the common case), generic
+        otherwise. Rounds the wait to whatever unit reads most sensibly."""
+        if window_seconds == 3600:
+            window_desc = "per hour"
+        elif window_seconds == 60:
+            window_desc = "per minute"
+        else:
+            window_desc = f"per {int(window_seconds)}s"
+        if retry_after >= 3600:
+            wait_desc = f"{round(retry_after / 3600)} hour(s)"
+        elif retry_after >= 60:
+            wait_desc = f"{round(retry_after / 60)} minute(s)"
+        else:
+            wait_desc = f"{retry_after} second(s)"
+        return f"Upload limit reached ({limit} {window_desc}). Try again in {wait_desc}."
+
     def _pipeline_for_request(corpus_id: Optional[str], k: Optional[int]) -> RAGTrustPipeline:
         """Select the corpus pipeline (the bundled base one when `corpus_id`
         is None), then apply the `k` override to whichever pipeline that was."""
@@ -156,6 +209,14 @@ def create_app(index_dir: str, config: Config = None, generator: Any = None) -> 
         scoped._retriever = base._retriever
         scoped.passages_text = base.passages_text
         scoped.passage_meta = base.passage_meta
+        # Without this, `scoped.passage_source_text` stays at its `__init__`
+        # default ([]), so `scoped.source_text(id)` would fall through to
+        # `scoped.passages_text[id]` -- the contextualised (blurb-prefixed)
+        # text under Config.contextual=True -- for every k-override request.
+        # That would hand the LLM-written blurb to NLI/generation/citations via
+        # this code path alone, reintroducing the exact defect `answer()`'s
+        # `replace(p, text=self.source_text(p.id))` line exists to prevent.
+        scoped.passage_source_text = base.passage_source_text
         return scoped
 
     @app.get("/health", response_model=HealthResponse)
@@ -226,11 +287,52 @@ def create_app(index_dir: str, config: Config = None, generator: Any = None) -> 
             for question, entry in data.items()
         ]
 
-    # These three routes must be registered before the StaticFiles mount below:
+    # These routes must be registered before the StaticFiles mount below:
     # Starlette matches routes in registration order and that mount is a
     # catch-all at "/", so anything registered after it would never be reached.
     @app.post("/corpora", status_code=201)
-    async def upload_corpus(file: UploadFile = File(...)) -> dict:
+    async def upload_corpus(request: Request, file: UploadFile = File(...)) -> dict:
+        # Order matters: token check, then per-client limiter, then global
+        # limiter, then the existing size/validation logic below (unchanged).
+        # A request that presents a valid token is an authenticated operator,
+        # not anonymous traffic, so it skips both limiters entirely -- rate
+        # limits exist to bound abuse from callers who haven't proven
+        # anything about themselves, not to throttle someone who has.
+        if upload_token:
+            provided = request.headers.get("X-Upload-Token", "")
+            # hmac.compare_digest is constant-time: it always walks the full
+            # length of both arguments, so how long the comparison takes does
+            # not depend on how many leading bytes of `provided` happen to
+            # match `upload_token`. A plain `==` short-circuits on the first
+            # mismatch, which leaks the token one correct byte at a time to
+            # an attacker who can measure response latency across many guesses.
+            if not hmac.compare_digest(provided, upload_token):
+                # Detail is a fixed string, never `provided` or `upload_token`
+                # -- echoing either back (here or in a log line) would hand a
+                # secret, or an attacker's best guess at one, to whoever can
+                # read the response or the logs.
+                raise HTTPException(status_code=401, detail="Missing or invalid upload token.")
+        else:
+            per_client_key = client_key(request, trust_proxy)
+            allowed, retry_after = app.state.upload_limiter.check(per_client_key)
+            if not allowed:
+                raise HTTPException(
+                    status_code=429,
+                    detail=_retry_after_message(upload_rate_limit, upload_rate_window, retry_after),
+                    headers={"Retry-After": str(retry_after)},
+                )
+            # Checked second, only once the per-client limiter has already
+            # let this request through -- see the comment on this limiter's
+            # construction above for why it exists in addition to, not
+            # instead of, the per-client one.
+            allowed, retry_after = app.state.upload_global_limiter.check(_GLOBAL_UPLOAD_KEY)
+            if not allowed:
+                raise HTTPException(
+                    status_code=429,
+                    detail=_retry_after_message(upload_global_limit, upload_rate_window, retry_after),
+                    headers={"Retry-After": str(retry_after)},
+                )
+
         limit = max_upload_bytes()
         chunks = []
         total = 0
@@ -284,6 +386,19 @@ def create_app(index_dir: str, config: Config = None, generator: Any = None) -> 
             app.state.corpus_store.delete(corpus_id)
         except KeyError:
             raise HTTPException(status_code=404, detail=f"No such corpus: {corpus_id}")
+
+    @app.get("/corpora/limits")
+    def upload_limits() -> dict:
+        # Policy only -- never `upload_token` itself. This lets the dashboard
+        # tell an anonymous visitor what the rules are (e.g. to render "5
+        # uploads/hour" before they hit the limit) without exposing anything
+        # that would let them bypass the token check.
+        return {
+            "per_client": upload_rate_limit,
+            "global": upload_global_limit,
+            "window_seconds": upload_rate_window,
+            "token_required": bool(upload_token),
+        }
 
     # Mounted LAST and at "/" so it never shadows the API routes above: Starlette
     # matches routes in registration order and returns on the first match, so
