@@ -11,7 +11,17 @@ and where the system can decline to answer.
 Built for settings that cannot send documents to a hosted API: everything runs locally against
 open-weight models via Ollama, or against a hosted inference endpoint if you prefer.
 
-**[→ See it working](https://hharsha98.github.io/rag-trustworthiness-industrial/)**
+**[→ Try the live system](https://ragtrust.169.58.185.43.sslip.io/)** — ask it something the
+corpus covers, then ask it the capital of France and watch it decline to answer. You can also
+drop in your own PDF or Markdown file and interrogate that instead.
+
+**[→ Read the walkthrough](https://hharsha98.github.io/rag-trustworthiness-industrial/)** if
+you would rather see it explained than click through it.
+
+<sub>The live instance is a 2-vCPU VPS running open-weight models, so an answer takes a few
+seconds — most of it NLI entailment rather than generation, which the per-stage timings on the
+page will show you. Uploads and questions are both rate limited, and uploaded documents are
+deleted after 24 hours.</sub>
 
 ---
 
