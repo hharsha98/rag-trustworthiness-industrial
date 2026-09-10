@@ -82,6 +82,14 @@ a{color:inherit}
 .composer-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .corpus-row{margin-bottom:12px}
 .ask-row{margin-top:14px;align-items:stretch}
+/* Side by side, the input and the button split a 375px screen into two cramped
+   halves and the question becomes unreadable while being typed -- the one thing
+   this row exists for. Below 520px they stack and each gets the full width. */
+@media (max-width:520px){
+  .ask-row{flex-direction:column}
+  .ask-row .ask-input{width:100%}
+  .ask-row .btn-primary{width:100%;padding:13px 24px}
+}
 
 .select{
   background:var(--s1);border:1px solid var(--border);border-radius:var(--r-sm);
