@@ -232,6 +232,9 @@ def test_dashboard_serves_index_logo_and_favicon(tmp_path):
     assert "RAG Trust" in index.text
     assert "/logo.svg" in index.text
     assert "/favicon.svg" in index.text
+    assert "Every answer is a" in index.text
+    assert 'class="idle-plate"' in index.text
+    assert "hero-seal" in index.text
 
     logo = client.get("/logo.svg")
     assert logo.status_code == 200

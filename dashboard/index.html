@@ -15,7 +15,7 @@
 <link rel="apple-touch-icon" href="/logo.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#07080a; --s1:#0c0e12; --s2:#12151a; --s3:#181c23;
@@ -27,6 +27,7 @@
   --r-sm:5px; --r:8px; --r-lg:12px;
   --font-ui:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   --font-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --font-display:"IBM Plex Serif",Georgia,"Times New Roman",serif;
   --t:150ms cubic-bezier(.4,0,.2,1);
 }
 *{box-sizing:border-box}
@@ -62,7 +63,7 @@ a{color:inherit}
   backdrop-filter:saturate(1.4) blur(12px);-webkit-backdrop-filter:saturate(1.4) blur(12px);
   border-bottom:1px solid var(--border);
 }
-.topbar-inner{max-width:1180px;margin:0 auto;padding:0 20px;min-height:52px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.topbar-inner{max-width:1180px;margin:0 auto;padding:0 20px;min-height:56px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:10px;text-decoration:none;flex:none;color:var(--text)}
 .brand-mark{flex:none;display:block;width:32px;height:32px}
 .brand-text{display:flex;flex-direction:column;gap:1px;line-height:1.05}
@@ -70,6 +71,13 @@ a{color:inherit}
 .brand-kicker{
   font:500 9px/1 var(--font-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--text-3);
 }
+.top-nav{display:flex;align-items:center;gap:18px;margin-left:8px}
+.top-nav a{
+  font:500 11px/1 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);
+  text-decoration:none;transition:color var(--t);
+}
+.top-nav a:hover{color:var(--text)}
+@media (max-width:720px){.top-nav{display:none}}
 .status-cluster{margin-left:auto;display:flex;align-items:center;gap:6px;flex-wrap:wrap;row-gap:6px}
 @media (max-width:480px){
   .status-cluster{margin-left:0;width:100%}
@@ -93,10 +101,79 @@ a{color:inherit}
 .dot.off{background:var(--bad);box-shadow:0 0 0 3px rgba(255,107,107,.16)}
 
 /* ============ workspace shell ============ */
-.workspace{max-width:1180px;margin:0 auto;padding:22px 20px 64px;position:relative;z-index:1}
+.workspace{max-width:1180px;margin:0 auto;padding:28px 20px 64px;position:relative;z-index:1}
 .workspace::before{
-  content:"";position:absolute;top:-90px;left:12%;width:380px;height:240px;pointer-events:none;
-  background:radial-gradient(ellipse, rgba(77,163,255,.09), transparent 70%);
+  content:"";position:absolute;top:-40px;right:4%;width:420px;height:320px;pointer-events:none;
+  background:radial-gradient(ellipse, rgba(77,163,255,.11), transparent 68%);
+}
+.workspace.is-working{padding-top:16px}
+.workspace.is-working .hero,
+.workspace.is-working .idle-plate{display:none}
+
+/* ============ idle hero (hidden once a run starts) ============ */
+.hero{
+  display:grid;grid-template-columns:1.15fr .85fr;gap:28px;align-items:center;
+  margin-bottom:22px;min-height:220px;
+}
+.hero-pills{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.pill{
+  font:500 10px/1 var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--text-2);
+  border:1px solid var(--border);border-radius:999px;padding:7px 11px;background:rgba(18,21,26,.72);
+}
+.pill .live{width:6px;height:6px;border-radius:50%;background:var(--ok);display:inline-block;margin-right:6px;box-shadow:0 0 0 3px var(--signal-dim);vertical-align:middle}
+.hero-display{
+  font:400 clamp(28px,4.2vw,44px)/1.12 var(--font-display);letter-spacing:-.03em;margin:0 0 12px;max-width:18ch;
+}
+.hero-display em{
+  font-style:italic;
+  background:linear-gradient(100deg,var(--accent) 10%,#9ad0ff 48%,var(--signal));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.hero-sub{margin:0;color:var(--text-2);font-size:14.5px;max-width:42ch;line-height:1.55}
+.hero-visual{
+  position:relative;height:300px;display:flex;align-items:center;justify-content:center;
+}
+.hero-bezel{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.hero-seal{
+  position:relative;z-index:1;width:104px;height:104px;filter:drop-shadow(0 12px 32px rgba(77,163,255,.35));
+}
+@media (max-width:860px){
+  .hero{grid-template-columns:1fr;min-height:0;gap:8px;margin-bottom:16px}
+  .hero-visual{display:none}
+  .hero-display{max-width:none}
+}
+
+/* idle faceplate — fills the void with the metric taxonomy */
+.idle-plate{margin-top:18px}
+.idle-head{
+  display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:10px;flex-wrap:wrap;
+}
+.idle-k{
+  font:500 10px/1 var(--font-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--text-3);margin:0;
+}
+.idle-note{margin:0;font-size:12px;color:var(--text-3)}
+.legend-grid{
+  display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;
+}
+@media (max-width:980px){.legend-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:520px){.legend-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.legend-item{
+  border:1px solid var(--border);border-radius:var(--r);background:var(--s2);padding:12px 12px 13px;min-width:0;
+}
+.legend-item .k{
+  font:500 10px/1 var(--font-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin:0 0 8px;
+}
+.legend-item p{margin:0;font-size:12.5px;color:var(--text-2);line-height:1.4}
+.path{
+  display:flex;flex-wrap:wrap;gap:0;margin-top:12px;border:1px solid var(--border);border-radius:var(--r);
+  background:var(--s2);overflow:hidden;
+}
+.path span{
+  flex:1;min-width:88px;text-align:center;font:500 10.5px/1 var(--font-mono);letter-spacing:.08em;
+  text-transform:uppercase;color:var(--text-3);padding:11px 8px;position:relative;
+}
+.path span+span::before{
+  content:"";position:absolute;left:0;top:22%;bottom:22%;width:1px;background:var(--border);
 }
 
 /* ============ composer ============ */
@@ -314,6 +391,11 @@ tr:last-child td{border-bottom:0}
         <span class="brand-kicker">instrument</span>
       </span>
     </a>
+    <nav class="top-nav" aria-label="Product">
+      <a href="https://github.com/hharsha98/rag-trustworthiness-industrial/blob/main/METRICS.md">Spec</a>
+      <a href="https://github.com/hharsha98/rag-trustworthiness-industrial">Source</a>
+      <a href="https://hharsha98.github.io/rag-trustworthiness-industrial/">Walkthrough</a>
+    </nav>
     <div class="status-cluster">
       <span class="chip"><span class="dot" id="dot"></span><span id="svc">connecting</span></span>
       <span class="chip">passages <b id="npsg" class="mono">—</b></span>
@@ -326,10 +408,38 @@ tr:last-child td{border-bottom:0}
 </header>
 
 <main class="workspace" id="main">
+  <section class="hero" aria-label="Product">
+    <div>
+      <div class="hero-pills">
+        <span class="pill"><span class="live" aria-hidden="true"></span>self-hosted</span>
+        <span class="pill">declines when ungrounded</span>
+        <span class="pill">geometric ≥ 0.50</span>
+      </div>
+      <h1 class="hero-display">Every answer is a <em>measurement</em>.</h1>
+      <p class="hero-sub">Evidence, five trust metrics, and a score that cannot be inflated by fluency — or a refusal.</p>
+    </div>
+    <div class="hero-visual" aria-hidden="true">
+      <svg class="hero-bezel" viewBox="0 0 320 320" fill="none">
+        <circle cx="160" cy="160" r="148" stroke="rgba(77,163,255,.22)" stroke-width="1.15"/>
+        <circle cx="160" cy="160" r="118" stroke="rgba(77,163,255,.32)" stroke-width="1.15" stroke-dasharray="2 9"/>
+        <circle cx="160" cy="160" r="88" stroke="rgba(62,224,192,.42)" stroke-width="1.5"/>
+        <circle cx="160" cy="160" r="58" stroke="rgba(77,163,255,.2)" stroke-width="1.1"/>
+        <path d="M160 18 A142 142 0 0 1 286 112" stroke="#4da3ff" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M160 42 A118 118 0 0 1 262 102" stroke="#3ee0c0" stroke-width="1.6" stroke-linecap="round" opacity=".75"/>
+        <g stroke="#5d7388" stroke-width="1.2" stroke-linecap="round">
+          <path d="M160 12v10"/><path d="M160 298v10"/>
+          <path d="M12 160h10"/><path d="M298 160h10"/>
+          <path d="M55.7 55.7l7.4 7.4"/><path d="M256.9 256.9l7.4 7.4"/>
+          <path d="M264.3 55.7l-7.4 7.4"/><path d="M63.1 256.9l-7.4 7.4"/>
+        </g>
+      </svg>
+      <img class="hero-seal" src="/logo.svg" width="92" height="92" alt="">
+    </div>
+  </section>
+
   <section class="composer" aria-label="Ask a question">
     <div class="composer-head">
       <p class="composer-label">Query</p>
-      <p class="composer-tagline">Every answer returns its evidence and a measurement of how well that evidence supports it.</p>
     </div>
 
     <div class="composer-row corpus-row">
@@ -353,6 +463,24 @@ tr:last-child td{border-bottom:0}
       <button class="btn-primary" id="go" type="button">Measure</button>
     </div>
     <div class="examples" id="ex"></div>
+  </section>
+
+  <section class="idle-plate" id="idlePlate" aria-label="What gets scored">
+    <div class="idle-head">
+      <p class="idle-k">What gets scored</p>
+      <p class="idle-note">Idle faceplate — these become live readouts after Measure.</p>
+    </div>
+    <div class="legend-grid">
+      <div class="legend-item"><div class="k">Faithfulness</div><p>Share of the answer the retrieved passages actually entail.</p></div>
+      <div class="legend-item"><div class="k">Attribution</div><p>Whether citations point at the right passage, not merely a passage.</p></div>
+      <div class="legend-item"><div class="k">Relevance</div><p>Did retrieval find material related to the question asked.</p></div>
+      <div class="legend-item"><div class="k">Conciseness</div><p>Semantic redundancy among the answer's own claims — padding, not length.</p></div>
+      <div class="legend-item"><div class="k">Contradiction</div><p>κ — claims the passages actively refute, reported separately from unsupported.</p></div>
+      <div class="legend-item"><div class="k">Trust</div><p>Non-compensatory geometric aggregate. Clears at 0.50. Arithmetic is shown beside it.</p></div>
+    </div>
+    <div class="path" aria-label="Measurement path">
+      <span>retrieve</span><span>gate</span><span>generate</span><span>decompose</span><span>entail</span><span>score</span>
+    </div>
   </section>
 
   <section class="scan" id="scan" aria-live="polite">
@@ -516,7 +644,12 @@ function gauge(arith, geom){
 const linkCites = t => esc(t).replace(/\[(\d+)\]/g, (_, n) => `<span class="cite" data-p="${n}" role="button" tabindex="0">[${n}]</span>`);
 
 let scanTimer = null;
+const workspace = document.querySelector(".workspace");
+function setWorking(on){
+  workspace.classList.toggle("is-working", !!on);
+}
 function startScan(){
+  setWorking(true);
   const steps = [...document.querySelectorAll("#scan .step")];
   steps.forEach(s => s.className = "step");
   $("#scan").classList.add("show");
@@ -532,6 +665,7 @@ function startScan(){
 const stopScan = () => { clearTimeout(scanTimer); $("#scan").classList.remove("show"); };
 
 function render(d){
+  setWorking(true);
   const m = d.metrics || {}, t = d.trust || {};
   let h = "";
 
