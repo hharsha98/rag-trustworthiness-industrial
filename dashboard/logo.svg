@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-labelledby="rtTitle rtDesc">
+  <title id="rtTitle">RAG Trust Citation Seal</title>
+  <desc id="rtDesc">Octagonal calibration plate with a gauge arc and citation brackets around a grounded pip.</desc>
+  <path d="M11 2.4h10L29.6 11v10L21 29.6H11L2.4 21V11L11 2.4z"
+        fill="#141920" stroke="#7ec2ff" stroke-width="1.55" stroke-linejoin="round"/>
+  <circle cx="16" cy="16" r="8.55" stroke="#334155" stroke-width="1.35" fill="none"/>
+  <g stroke="#8aa0b5" stroke-width="0.85" stroke-linecap="round">
+    <path d="M16 6.35v1.7"/>
+    <path d="M16 23.95v1.7"/>
+    <path d="M6.35 16h1.7"/>
+    <path d="M23.95 16h1.7"/>
+  </g>
+  <path d="M16 7.45 A8.55 8.55 0 1 1 7.85 20.35"
+        stroke="#4da3ff" stroke-width="2.05" stroke-linecap="round" fill="none"/>
+  <path d="M13.15 11.15 H11.05 V20.85 H13.15"
+        stroke="#f4f7fb" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M18.85 11.15 H20.95 V20.85 H18.85"
+        stroke="#f4f7fb" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <circle cx="16" cy="16" r="1.85" fill="#3ee0c0"/>
+</svg>

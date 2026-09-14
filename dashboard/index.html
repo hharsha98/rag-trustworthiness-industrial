@@ -3,28 +3,47 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>RAG Trustworthiness — Instrument</title>
+<title>RAG Trust — Instrument</title>
 <meta name="description" content="Ask a question against a private corpus and watch every trust metric resolve: grounding, citation accuracy, relevance, redundancy, and a non-compensatory trust score.">
+<meta name="theme-color" content="#07080a">
+<meta name="application-name" content="RAG Trust">
+<meta property="og:title" content="RAG Trust — Instrument">
+<meta property="og:description" content="Every answer returns its evidence and a measurement of how well that evidence supports it — or the system declines.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="mask-icon" href="/favicon.svg" color="#4da3ff">
+<link rel="apple-touch-icon" href="/logo.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#08090b;  --s1:#0e1013;  --s2:#14171c;  --s3:#1a1e25;
-  --border:#1e232a;  --border-2:#2a313a;
-  --text:#f2f4f7;  --text-2:#9aa4b2;  --text-3:#7f8a97; /* spec's #6b7480 clears ~4.0:1 on --s1; this clears ~4.8:1 */
-  --accent:#4da3ff;  --accent-dim:rgba(77,163,255,.12);  --accent-ink:#031420;
-  --ok:#34d399;  --warn:#fbbf24;  --bad:#f87171;
-  --r-sm:6px; --r:10px; --r-lg:14px;
-  --font-ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --bg:#07080a; --s1:#0c0e12; --s2:#12151a; --s3:#181c23;
+  --border:#232830; --border-2:#323a44; --hairline:rgba(255,255,255,.045);
+  --text:#eef1f4; --text-2:#9aa3b0; --text-3:#7a8490;
+  --accent:#4da3ff; --accent-dim:rgba(77,163,255,.12); --accent-ink:#031420;
+  --signal:#3ee0c0; --signal-dim:rgba(62,224,192,.14);
+  --ok:#3ee0c0; --warn:#e8b44c; --bad:#ff6b6b;
+  --r-sm:5px; --r:8px; --r-lg:12px;
+  --font-ui:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   --font-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --font-display:"IBM Plex Serif",Georgia,"Times New Roman",serif;
   --t:150ms cubic-bezier(.4,0,.2,1);
 }
 *{box-sizing:border-box}
 html,body{height:100%}
 body{
   margin:0;background:var(--bg);color:var(--text);
-  font:400 15px/1.6 var(--font-ui);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  font:400 14px/1.5 var(--font-ui);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:
+    linear-gradient(to right, var(--hairline) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--hairline) 1px, transparent 1px);
+  background-size:28px 28px;
+  mask-image:radial-gradient(ellipse 80% 55% at 50% -10%, #000 30%, transparent 78%);
+  -webkit-mask-image:radial-gradient(ellipse 80% 55% at 50% -10%, #000 30%, transparent 78%);
 }
 ::selection{background:var(--accent-dim);color:var(--text)}
 .sr-only{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
@@ -33,75 +52,165 @@ a{color:inherit}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:var(--r-sm)}
 .skip-link{
   position:absolute;left:12px;top:-48px;z-index:100;background:var(--accent);color:var(--accent-ink);
-  padding:10px 14px;border-radius:var(--r-sm);font:600 13px var(--font-ui);text-decoration:none;
+  padding:8px 12px;border-radius:var(--r-sm);font:600 12px var(--font-ui);text-decoration:none;
   transition:top var(--t);
 }
 .skip-link:focus-visible{top:12px}
 
 /* ============ top bar ============ */
 .topbar{
-  position:sticky;top:0;z-index:40;background:rgba(14,16,19,.88);
-  backdrop-filter:saturate(1.5) blur(10px);-webkit-backdrop-filter:saturate(1.5) blur(10px);
+  position:sticky;top:0;z-index:40;background:rgba(12,14,18,.82);
+  backdrop-filter:saturate(1.4) blur(12px);-webkit-backdrop-filter:saturate(1.4) blur(12px);
   border-bottom:1px solid var(--border);
 }
-.topbar-inner{max-width:1280px;margin:0 auto;padding:10px 24px;min-height:56px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.topbar-inner{max-width:1180px;margin:0 auto;padding:0 20px;min-height:56px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:10px;text-decoration:none;flex:none;color:var(--text)}
-.brand-mark{flex:none;display:block}
-.brand-name{font-size:14px;font-weight:600;letter-spacing:-.01em}
-.status-cluster{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;row-gap:8px}
+.brand-mark{flex:none;display:block;width:32px;height:32px}
+.brand-text{display:flex;flex-direction:column;gap:1px;line-height:1.05}
+.brand-name{font-size:13.5px;font-weight:600;letter-spacing:.01em}
+.brand-kicker{
+  font:500 9px/1 var(--font-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--text-3);
+}
+.top-nav{display:flex;align-items:center;gap:18px;margin-left:8px}
+.top-nav a{
+  font:500 11px/1 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);
+  text-decoration:none;transition:color var(--t);
+}
+.top-nav a:hover{color:var(--text)}
+@media (max-width:720px){.top-nav{display:none}}
+.status-cluster{margin-left:auto;display:flex;align-items:center;gap:6px;flex-wrap:wrap;row-gap:6px}
 @media (max-width:480px){
   .status-cluster{margin-left:0;width:100%}
 }
 .chip{
-  display:inline-flex;align-items:center;gap:6px;font:500 12px/1 var(--font-ui);color:var(--text-2);
-  border:1px solid var(--border);border-radius:999px;background:var(--s2);padding:7px 11px;
-  white-space:nowrap;
+  display:inline-flex;align-items:center;gap:6px;font:500 11px/1 var(--font-mono);color:var(--text-2);
+  border:1px solid var(--border);border-radius:999px;background:var(--s2);padding:6px 10px;
+  white-space:nowrap;letter-spacing:.02em;
 }
 .chip b{color:var(--text);font-weight:600}
 .chip b.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
 .chip-toggle{
-  cursor:pointer;font:500 12px var(--font-ui);
+  cursor:pointer;font:500 11px var(--font-mono);
   transition:border-color var(--t),color var(--t),background var(--t);
 }
 .chip-toggle:hover{border-color:var(--border-2);color:var(--text)}
 .chip-toggle[aria-expanded="true"]{border-color:var(--accent);color:var(--text);background:var(--accent-dim)}
 .chevron{font-size:10px}
 .dot{width:6px;height:6px;border-radius:50%;background:var(--text-3);display:inline-block;flex:none}
-.dot.on{background:var(--ok);box-shadow:0 0 0 3px rgba(52,211,153,.16)}
-.dot.off{background:var(--bad);box-shadow:0 0 0 3px rgba(248,113,113,.16)}
+.dot.on{background:var(--ok);box-shadow:0 0 0 3px var(--signal-dim)}
+.dot.off{background:var(--bad);box-shadow:0 0 0 3px rgba(255,107,107,.16)}
 
 /* ============ workspace shell ============ */
-.workspace{max-width:1280px;margin:0 auto;padding:28px 24px 80px;position:relative}
+.workspace{max-width:1180px;margin:0 auto;padding:28px 20px 64px;position:relative;z-index:1}
+.workspace::before{
+  content:"";position:absolute;top:-40px;right:4%;width:420px;height:320px;pointer-events:none;
+  background:radial-gradient(ellipse, rgba(77,163,255,.11), transparent 68%);
+}
+.workspace.is-working{padding-top:16px}
+.workspace.is-working .hero,
+.workspace.is-working .idle-plate{display:none}
+
+/* ============ idle hero (hidden once a run starts) ============ */
+.hero{
+  display:grid;grid-template-columns:1.15fr .85fr;gap:28px;align-items:center;
+  margin-bottom:22px;min-height:220px;
+}
+.hero-pills{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.pill{
+  font:500 10px/1 var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--text-2);
+  border:1px solid var(--border);border-radius:999px;padding:7px 11px;background:rgba(18,21,26,.72);
+}
+.pill .live{width:6px;height:6px;border-radius:50%;background:var(--ok);display:inline-block;margin-right:6px;box-shadow:0 0 0 3px var(--signal-dim);vertical-align:middle}
+.hero-display{
+  font:400 clamp(28px,4.2vw,44px)/1.12 var(--font-display);letter-spacing:-.03em;margin:0 0 12px;max-width:18ch;
+}
+.hero-display em{
+  font-style:italic;
+  background:linear-gradient(100deg,var(--accent) 10%,#9ad0ff 48%,var(--signal));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.hero-sub{margin:0;color:var(--text-2);font-size:14.5px;max-width:42ch;line-height:1.55}
+.hero-visual{
+  position:relative;height:300px;display:flex;align-items:center;justify-content:center;
+}
+.hero-bezel{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.hero-seal{
+  position:relative;z-index:1;width:104px;height:104px;filter:drop-shadow(0 12px 32px rgba(77,163,255,.35));
+}
+@media (max-width:860px){
+  .hero{grid-template-columns:1fr;min-height:0;gap:8px;margin-bottom:16px}
+  .hero-visual{display:none}
+  .hero-display{max-width:none}
+}
+
+/* idle faceplate — fills the void with the metric taxonomy */
+.idle-plate{margin-top:18px}
+.idle-head{
+  display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:10px;flex-wrap:wrap;
+}
+.idle-k{
+  font:500 10px/1 var(--font-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--text-3);margin:0;
+}
+.idle-note{margin:0;font-size:12px;color:var(--text-3)}
+.legend-grid{
+  display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;
+}
+@media (max-width:980px){.legend-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:520px){.legend-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.legend-item{
+  border:1px solid var(--border);border-radius:var(--r);background:var(--s2);padding:12px 12px 13px;min-width:0;
+}
+.legend-item .k{
+  font:500 10px/1 var(--font-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin:0 0 8px;
+}
+.legend-item p{margin:0;font-size:12.5px;color:var(--text-2);line-height:1.4}
+.path{
+  display:flex;flex-wrap:wrap;gap:0;margin-top:12px;border:1px solid var(--border);border-radius:var(--r);
+  background:var(--s2);overflow:hidden;
+}
+.path span{
+  flex:1;min-width:88px;text-align:center;font:500 10.5px/1 var(--font-mono);letter-spacing:.08em;
+  text-transform:uppercase;color:var(--text-3);padding:11px 8px;position:relative;
+}
+.path span+span::before{
+  content:"";position:absolute;left:0;top:22%;bottom:22%;width:1px;background:var(--border);
+}
 
 /* ============ composer ============ */
 .composer{
   border:1px solid var(--border);border-radius:var(--r-lg);background:var(--s2);
-  padding:20px 22px;box-shadow:0 24px 56px -34px rgba(0,0,0,.85);
+  padding:16px 18px 18px;box-shadow:0 20px 48px -32px rgba(0,0,0,.9);
+  position:relative;
 }
-.composer-tagline{margin:0 0 16px;color:var(--text-2);font-size:13px;max-width:60ch}
-.composer-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.corpus-row{margin-bottom:12px}
-.ask-row{margin-top:14px;align-items:stretch}
-/* Side by side, the input and the button split a 375px screen into two cramped
-   halves and the question becomes unreadable while being typed -- the one thing
-   this row exists for. Below 520px they stack and each gets the full width. */
+.composer::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+}
+.composer-head{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin-bottom:12px}
+.composer-label{
+  font:500 10px/1 var(--font-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--text-3);margin:0;
+}
+.composer-tagline{margin:0;color:var(--text-2);font-size:12.5px}
+.composer-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.corpus-row{margin-bottom:10px}
+.ask-row{margin-top:10px;align-items:stretch}
 @media (max-width:520px){
   .ask-row{flex-direction:column}
   .ask-row .ask-input{width:100%}
-  .ask-row .btn-primary{width:100%;padding:13px 24px}
+  .ask-row .btn-primary{width:100%;padding:12px 22px}
 }
 
 .select{
   background:var(--s1);border:1px solid var(--border);border-radius:var(--r-sm);
-  color:var(--text);font:400 13px var(--font-ui);padding:9px 12px;outline:none;cursor:pointer;
-  transition:border-color var(--t);max-width:230px;
+  color:var(--text);font:400 12.5px var(--font-ui);padding:8px 10px;outline:none;cursor:pointer;
+  transition:border-color var(--t);max-width:220px;
 }
 .select:hover{border-color:var(--border-2)}
 .select:focus-visible{border-color:var(--accent)}
 
 .dropzone{
-  flex:1;min-width:170px;border:1px dashed var(--border-2);border-radius:var(--r-sm);
-  color:var(--text-3);font-size:12.5px;padding:9px 14px;cursor:pointer;outline:none;text-align:center;
+  flex:1;min-width:160px;border:1px dashed var(--border-2);border-radius:var(--r-sm);
+  color:var(--text-3);font-size:12px;padding:8px 12px;cursor:pointer;outline:none;text-align:center;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   transition:border-color var(--t),color var(--t),background var(--t);
 }
@@ -109,136 +218,163 @@ a{color:inherit}
 .dropzone.drag{border-color:var(--accent);color:var(--text);background:var(--accent-dim)}
 
 .btn-ghost{
-  font:500 12.5px var(--font-ui);color:var(--text-2);background:var(--s1);
-  border:1px solid var(--border);border-radius:var(--r-sm);padding:9px 13px;cursor:pointer;
+  font:500 12px var(--font-ui);color:var(--text-2);background:var(--s1);
+  border:1px solid var(--border);border-radius:var(--r-sm);padding:8px 12px;cursor:pointer;
   transition:border-color var(--t),color var(--t);white-space:nowrap;
 }
 .btn-ghost:hover{border-color:var(--bad);color:var(--bad)}
 
 .ask-input{
   flex:1;background:var(--s1);border:1px solid var(--border);border-radius:var(--r);
-  color:var(--text);font:400 15px/1.4 var(--font-ui);padding:14px 16px;outline:none;min-width:0;
+  color:var(--text);font:400 14.5px/1.4 var(--font-ui);padding:12px 14px;outline:none;min-width:0;
   transition:border-color var(--t),box-shadow var(--t);
 }
 .ask-input::placeholder{color:var(--text-3)}
-.ask-input:focus-visible{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-dim)}
+.ask-input:focus-visible{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim)}
 
 .btn-primary{
-  border:0;border-radius:var(--r);padding:0 24px;cursor:pointer;white-space:nowrap;
-  font:600 14px var(--font-ui);letter-spacing:.01em;background:var(--accent);color:var(--accent-ink);
+  border:0;border-radius:var(--r);padding:0 22px;cursor:pointer;white-space:nowrap;
+  font:600 13px var(--font-ui);letter-spacing:.02em;background:var(--accent);color:var(--accent-ink);
   transition:filter var(--t),transform 60ms ease;
 }
-.btn-primary:hover{filter:brightness(1.1)}
+.btn-primary:hover{filter:brightness(1.08)}
 .btn-primary:active{transform:translateY(1px)}
 .btn-primary[disabled]{opacity:.45;cursor:not-allowed;filter:none}
 
-.examples{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.examples{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
 .ex{
-  font:400 12.5px var(--font-ui);color:var(--text-2);background:var(--s1);
-  border:1px solid var(--border);border-radius:var(--r-sm);padding:7px 12px;cursor:pointer;
+  font:400 12px var(--font-ui);color:var(--text-2);background:var(--s1);
+  border:1px solid var(--border);border-radius:var(--r-sm);padding:6px 10px;cursor:pointer;
   transition:border-color var(--t),color var(--t);text-align:left;
 }
 .ex:hover{border-color:var(--accent);color:var(--text)}
 .ex[data-kind="out"]{border-style:dashed}
 
-.confirm{color:var(--ok);font:13px var(--font-mono);padding:8px 2px 0}
-.err{color:var(--bad);font:13px var(--font-mono);padding:8px 2px}
+.confirm{color:var(--ok);font:12.5px var(--font-mono);padding:8px 2px 0}
+.err{color:var(--bad);font:12.5px var(--font-mono);padding:8px 2px}
 
 /* ============ scan (staged measurement sequence) ============ */
-.scan{display:none;padding:22px 20px;text-align:center}
-.scan.inline-scan{padding:14px 4px 4px}
+.scan{display:none;padding:16px 12px;text-align:center}
+.scan.inline-scan{padding:10px 4px 2px}
 .scan.show{display:block}
-.scan .steps{display:flex;justify-content:center;gap:0;flex-wrap:wrap;margin-bottom:14px}
+.scan .steps{display:flex;justify-content:center;gap:0;flex-wrap:wrap;margin-bottom:10px}
 .scan .step{
-  font:500 11px/1 var(--font-mono);letter-spacing:.03em;color:var(--text-3);padding:0 14px;position:relative;
-  transition:color .3s;
+  font:500 10.5px/1 var(--font-mono);letter-spacing:.04em;color:var(--text-3);padding:0 12px;position:relative;
+  transition:color .3s;text-transform:uppercase;
 }
 .scan .step.done{color:var(--ok)}
 .scan .step.active{color:var(--accent)}
-.scan .step+.step::before{content:"";position:absolute;left:0;top:50%;width:1px;height:11px;background:var(--border);transform:translateY(-50%)}
-.trace{height:2px;background:var(--s1);border-radius:2px;overflow:hidden;max-width:420px;margin:0 auto}
+.scan .step+.step::before{content:"";position:absolute;left:0;top:50%;width:1px;height:10px;background:var(--border);transform:translateY(-50%)}
+.trace{height:2px;background:var(--s1);border-radius:2px;overflow:hidden;max-width:380px;margin:0 auto;border:1px solid var(--border)}
 .trace i{display:block;height:100%;width:38%;background:linear-gradient(90deg,transparent,var(--accent),transparent);animation:sweep 1.15s linear infinite}
 @keyframes sweep{from{transform:translateX(-100%)}to{transform:translateX(360%)}}
 
 /* ============ results ============ */
-.stage{margin-top:24px;display:none}
+.stage{margin-top:18px;display:none}
 .stage.show{display:block;animation:rise .4s cubic-bezier(.22,1,.36,1)}
-@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 
 .verdict{
-  display:flex;align-items:center;gap:16px;padding:16px 20px;border-radius:var(--r-lg);
-  border:1px solid var(--border);background:var(--s2);margin-bottom:18px;
+  display:flex;align-items:center;gap:14px;padding:12px 16px;border-radius:var(--r-lg);
+  border:1px solid var(--border);background:var(--s2);margin-bottom:12px;
 }
-.verdict .big{font:600 15px var(--font-ui)}
-.verdict .sub{color:var(--text-2);font-size:13px;margin-top:3px}
-.verdict.ok{border-color:rgba(52,211,153,.35);background:linear-gradient(90deg,rgba(52,211,153,.09),var(--s2) 65%)}
-.verdict.no{border-color:rgba(248,113,113,.35);background:linear-gradient(90deg,rgba(248,113,113,.09),var(--s2) 65%)}
-.verdict.abst{border-color:rgba(251,191,36,.35);background:linear-gradient(90deg,rgba(251,191,36,.09),var(--s2) 65%)}
+.verdict-pip{width:10px;height:10px;border-radius:50%;flex:none}
+.verdict .big{font:600 14px var(--font-ui);letter-spacing:-.01em}
+.verdict .sub{color:var(--text-2);font-size:12.5px;margin-top:2px}
+.verdict-score{
+  margin-left:auto;text-align:right;font:600 18px/1 var(--font-mono);font-variant-numeric:tabular-nums;letter-spacing:-.03em;
+}
+.verdict-score .unit{display:block;font:500 9px var(--font-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--text-3);margin-top:4px}
+.verdict.ok{border-color:rgba(62,224,192,.32);background:linear-gradient(90deg,rgba(62,224,192,.08),var(--s2) 58%)}
+.verdict.ok .verdict-pip{background:var(--ok);box-shadow:0 0 0 4px var(--signal-dim)}
+.verdict.no{border-color:rgba(255,107,107,.32);background:linear-gradient(90deg,rgba(255,107,107,.08),var(--s2) 58%)}
+.verdict.no .verdict-pip{background:var(--bad);box-shadow:0 0 0 4px rgba(255,107,107,.14)}
+.verdict.abst{border-color:rgba(232,180,76,.32);background:linear-gradient(90deg,rgba(232,180,76,.08),var(--s2) 58%)}
+.verdict.abst .verdict-pip{background:var(--warn);box-shadow:0 0 0 4px rgba(232,180,76,.14)}
+@media (max-width:640px){
+  .verdict-score{margin-left:0;width:100%}
+}
 
-.cols{display:grid;grid-template-columns:1.4fr 1fr;gap:18px;align-items:start}
+.readouts{
+  display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin-bottom:12px;
+}
+.readouts-7{grid-template-columns:repeat(7,minmax(0,1fr))}
+@media (max-width:1100px){.readouts-7{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (max-width:980px){.readouts,.readouts-7{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:520px){.readouts,.readouts-7{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.readout{
+  border:1px solid var(--border);border-radius:var(--r);background:var(--s2);padding:10px 12px 11px;
+  min-width:0;
+}
+.readout-k{
+  font:500 9.5px/1 var(--font-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--text-3);
+}
+.readout-v{
+  font:600 22px/1.15 var(--font-mono);font-variant-numeric:tabular-nums;letter-spacing:-.03em;margin:6px 0 8px;
+}
+.readout-track{height:3px;border-radius:2px;background:var(--s1);overflow:hidden;border:1px solid var(--border)}
+.readout-track .fill{display:block;height:100%;width:0;transition:width .8s cubic-bezier(.22,1,.36,1)}
+.readout-h{font-size:11px;color:var(--text-3);margin-top:7px;line-height:1.35}
+
+.cols{display:grid;grid-template-columns:1.45fr .95fr;gap:12px;align-items:start}
 @media (max-width:940px){.cols{grid-template-columns:1fr}}
 
-.card{border:1px solid var(--border);border-radius:var(--r-lg);background:var(--s2);padding:18px 20px}
+.card{border:1px solid var(--border);border-radius:var(--r-lg);background:var(--s2);padding:14px 16px}
+.card + .card{margin-top:12px}
 .card h2{
-  font:600 11px/1 var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin:0 0 14px;
+  font:500 10px/1 var(--font-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--text-3);margin:0 0 12px;
 }
-.answer{font-size:15px;line-height:1.75;color:var(--text)}
+.answer{font-size:14.5px;line-height:1.7;color:var(--text)}
 .answer .cite{
-  font:600 11px var(--font-mono);color:var(--accent);background:var(--accent-dim);
-  border:1px solid rgba(77,163,255,.32);border-radius:4px;padding:1px 5px;margin:0 1px;
+  font:600 10.5px var(--font-mono);color:var(--accent);background:var(--accent-dim);
+  border:1px solid rgba(77,163,255,.32);border-radius:3px;padding:0 4px;margin:0 1px;
   cursor:pointer;transition:background var(--t);
 }
 .answer .cite:hover{background:rgba(77,163,255,.24)}
 
 /* ---- trust gauge ---- */
-.gauge{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.gauge{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
 .gauge svg{flex:none}
 .gauge-ring{transition:stroke-dashoffset .9s cubic-bezier(.22,1,.36,1)}
-.gauge .legend{font-size:12.5px;color:var(--text-2);line-height:1.8;min-width:170px;flex:1}
+.gauge .legend{font-size:12px;color:var(--text-2);line-height:1.7;min-width:160px;flex:1}
 .gauge .row{display:flex;align-items:center;gap:8px}
-.gauge .swatch{width:10px;height:10px;border-radius:2px;flex:none}
-.gauge .val{font:600 13px var(--font-mono);font-variant-numeric:tabular-nums;color:var(--text);margin-left:auto;padding-left:14px}
+.gauge .swatch{width:8px;height:8px;border-radius:2px;flex:none}
+.gauge .val{font:600 12.5px var(--font-mono);font-variant-numeric:tabular-nums;color:var(--text);margin-left:auto;padding-left:12px}
 .collapse-note{
-  font-size:12.5px;color:var(--text-2);border-left:2px solid var(--border);padding-left:12px;margin-top:12px;line-height:1.6;
+  font-size:12px;color:var(--text-2);border-left:2px solid var(--border);padding-left:10px;margin-top:10px;line-height:1.55;
 }
 .collapse-note b{color:var(--warn);font-weight:600}
 
-/* ---- metrics ---- */
-.metric{margin:0 0 13px}
-.metric .lab{display:flex;align-items:baseline;gap:8px;margin-bottom:5px}
-.metric .name{font-size:13px;color:var(--text)}
-.metric .num{margin-left:auto;font:600 13px var(--font-mono);font-variant-numeric:tabular-nums}
-.metric .track{height:6px;border-radius:3px;background:var(--s1);overflow:hidden;border:1px solid var(--border)}
-.metric .fill{display:block;height:100%;border-radius:3px;width:0;transition:width .8s cubic-bezier(.22,1,.36,1)}
-.metric .hint{font-size:11.5px;color:var(--text-3);margin-top:4px}
-.na{color:var(--text-3);font-style:italic}
+.stage-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
 
 /* ---- tables / passages ---- */
-table{width:100%;border-collapse:collapse;font-size:13px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
 th{
-  text-align:left;font:600 10.5px/1 var(--font-mono);letter-spacing:.09em;text-transform:uppercase;
-  color:var(--text-3);padding:0 10px 9px;border-bottom:1px solid var(--border);
+  text-align:left;font:500 10px/1 var(--font-mono);letter-spacing:.1em;text-transform:uppercase;
+  color:var(--text-3);padding:0 8px 8px;border-bottom:1px solid var(--border);
 }
-td{padding:11px 10px;border-bottom:1px solid rgba(30,35,42,.7);vertical-align:top;color:var(--text-2)}
-td.n{text-align:right;font:600 13px var(--font-mono);font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--text)}
+td{padding:9px 8px;border-bottom:1px solid rgba(35,40,48,.75);vertical-align:top;color:var(--text-2)}
+td.n{text-align:right;font:600 12.5px var(--font-mono);font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--text)}
 tr:last-child td{border-bottom:0}
 .tblwrap{overflow-x:auto}
+.hint{font-size:11px;color:var(--text-3)}
+.na{color:var(--text-3);font-style:italic}
 
-.psg{border-left:2px solid var(--border);padding:3px 0 3px 14px;margin:13px 0;font-size:13px;color:var(--text-2);transition:border-color .3s}
-.psg .meta{font:11.5px var(--font-mono);color:var(--text-3);margin-bottom:4px;transition:color .3s}
+.psg{border-left:2px solid var(--border);padding:2px 0 2px 12px;margin:10px 0;font-size:12.5px;color:var(--text-2);transition:border-color .3s}
+.psg .meta{font:11px var(--font-mono);color:var(--text-3);margin-bottom:3px;transition:color .3s}
 .psg.hit{border-left-color:var(--accent)}
 .psg.hit .meta{color:var(--accent)}
 
 @media (prefers-reduced-motion:reduce){
   .trace i{animation:none;width:100%;opacity:.4}
   .stage.show{animation:none}
-  .metric .fill{transition:none}
+  .readout-track .fill{transition:none}
   .gauge-ring{transition:none}
   .skip-link{transition:none}
 }
 
 /* ============ footer ============ */
-.site-footer{max-width:1280px;margin:0 auto;padding:0 24px 48px;color:var(--text-3);font-size:12.5px;display:flex;gap:18px;flex-wrap:wrap}
+.site-footer{max-width:1180px;margin:0 auto;padding:0 20px 40px;color:var(--text-3);font-size:12px;display:flex;gap:16px;flex-wrap:wrap;position:relative;z-index:1}
 .site-footer a{color:var(--text-2);text-decoration:none;border-bottom:1px solid var(--border);transition:color var(--t),border-color var(--t)}
 .site-footer a:hover{color:var(--accent);border-color:var(--accent)}
 </style>
@@ -248,14 +384,18 @@ tr:last-child td{border-bottom:0}
 
 <header class="topbar">
   <div class="topbar-inner">
-    <a class="brand" href="#main" aria-label="RAG Trustworthiness">
-      <svg class="brand-mark" width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
-        <rect x="1" y="1" width="20" height="20" rx="5" stroke="#2a313a" stroke-width="1.4"/>
-        <path d="M4.5 14.5 L8 14.5 L10 7 L12.3 16.2 L14.2 10.5 L16 13 L18 13"
-              stroke="#4da3ff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-      </svg>
-      <span class="brand-name">RAG Trustworthiness</span>
+    <a class="brand" href="#main" aria-label="RAG Trustworthiness Industrial">
+      <img class="brand-mark" src="/logo.svg" width="32" height="32" alt="">
+      <span class="brand-text">
+        <span class="brand-name">RAG Trust</span>
+        <span class="brand-kicker">instrument</span>
+      </span>
     </a>
+    <nav class="top-nav" aria-label="Product">
+      <a href="https://github.com/hharsha98/rag-trustworthiness-industrial/blob/main/METRICS.md">Spec</a>
+      <a href="https://github.com/hharsha98/rag-trustworthiness-industrial">Source</a>
+      <a href="https://hharsha98.github.io/rag-trustworthiness-industrial/">Walkthrough</a>
+    </nav>
     <div class="status-cluster">
       <span class="chip"><span class="dot" id="dot"></span><span id="svc">connecting</span></span>
       <span class="chip">passages <b id="npsg" class="mono">—</b></span>
@@ -268,8 +408,39 @@ tr:last-child td{border-bottom:0}
 </header>
 
 <main class="workspace" id="main">
+  <section class="hero" aria-label="Product">
+    <div>
+      <div class="hero-pills">
+        <span class="pill"><span class="live" aria-hidden="true"></span>self-hosted</span>
+        <span class="pill">declines when ungrounded</span>
+        <span class="pill">geometric ≥ 0.50</span>
+      </div>
+      <h1 class="hero-display">Every answer is a <em>measurement</em>.</h1>
+      <p class="hero-sub">Evidence, five trust metrics, and a score that cannot be inflated by fluency — or a refusal.</p>
+    </div>
+    <div class="hero-visual" aria-hidden="true">
+      <svg class="hero-bezel" viewBox="0 0 320 320" fill="none">
+        <circle cx="160" cy="160" r="148" stroke="rgba(77,163,255,.22)" stroke-width="1.15"/>
+        <circle cx="160" cy="160" r="118" stroke="rgba(77,163,255,.32)" stroke-width="1.15" stroke-dasharray="2 9"/>
+        <circle cx="160" cy="160" r="88" stroke="rgba(62,224,192,.42)" stroke-width="1.5"/>
+        <circle cx="160" cy="160" r="58" stroke="rgba(77,163,255,.2)" stroke-width="1.1"/>
+        <path d="M160 18 A142 142 0 0 1 286 112" stroke="#4da3ff" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M160 42 A118 118 0 0 1 262 102" stroke="#3ee0c0" stroke-width="1.6" stroke-linecap="round" opacity=".75"/>
+        <g stroke="#5d7388" stroke-width="1.2" stroke-linecap="round">
+          <path d="M160 12v10"/><path d="M160 298v10"/>
+          <path d="M12 160h10"/><path d="M298 160h10"/>
+          <path d="M55.7 55.7l7.4 7.4"/><path d="M256.9 256.9l7.4 7.4"/>
+          <path d="M264.3 55.7l-7.4 7.4"/><path d="M63.1 256.9l-7.4 7.4"/>
+        </g>
+      </svg>
+      <img class="hero-seal" src="/logo.svg" width="92" height="92" alt="">
+    </div>
+  </section>
+
   <section class="composer" aria-label="Ask a question">
-    <p class="composer-tagline">Every answer returns its evidence and a measurement of how well that evidence supports it.</p>
+    <div class="composer-head">
+      <p class="composer-label">Query</p>
+    </div>
 
     <div class="composer-row corpus-row">
       <label for="corpusSel" class="sr-only">Corpus</label>
@@ -294,6 +465,24 @@ tr:last-child td{border-bottom:0}
     <div class="examples" id="ex"></div>
   </section>
 
+  <section class="idle-plate" id="idlePlate" aria-label="What gets scored">
+    <div class="idle-head">
+      <p class="idle-k">What gets scored</p>
+      <p class="idle-note">Idle faceplate — these become live readouts after Measure.</p>
+    </div>
+    <div class="legend-grid">
+      <div class="legend-item"><div class="k">Faithfulness</div><p>Share of the answer the retrieved passages actually entail.</p></div>
+      <div class="legend-item"><div class="k">Attribution</div><p>Whether citations point at the right passage, not merely a passage.</p></div>
+      <div class="legend-item"><div class="k">Relevance</div><p>Did retrieval find material related to the question asked.</p></div>
+      <div class="legend-item"><div class="k">Conciseness</div><p>Semantic redundancy among the answer's own claims — padding, not length.</p></div>
+      <div class="legend-item"><div class="k">Contradiction</div><p>κ — claims the passages actively refute, reported separately from unsupported.</p></div>
+      <div class="legend-item"><div class="k">Trust</div><p>Non-compensatory geometric aggregate. Clears at 0.50. Arithmetic is shown beside it.</p></div>
+    </div>
+    <div class="path" aria-label="Measurement path">
+      <span>retrieve</span><span>gate</span><span>generate</span><span>decompose</span><span>entail</span><span>score</span>
+    </div>
+  </section>
+
   <section class="scan" id="scan" aria-live="polite">
     <div class="steps">
       <span class="step">retrieve</span>
@@ -308,7 +497,7 @@ tr:last-child td{border-bottom:0}
 
   <section class="stage" id="stage"></section>
 
-  <section class="card" id="evalPanel" style="display:none;margin-top:22px">
+  <section class="card" id="evalPanel" style="display:none;margin-top:18px">
     <h2>Evaluation</h2>
     <div id="evalBody"></div>
   </section>
@@ -317,6 +506,7 @@ tr:last-child td{border-bottom:0}
 <footer class="site-footer">
   <a href="https://github.com/hharsha98/rag-trustworthiness-industrial">Source</a>
   <a href="https://github.com/hharsha98/rag-trustworthiness-industrial/blob/main/METRICS.md">Formal spec</a>
+  <a href="https://hharsha98.github.io/rag-trustworthiness-industrial/">Walkthrough</a>
   <span id="foot"></span>
 </footer>
 
@@ -327,7 +517,7 @@ const f3 = x => (x === null || x === undefined || Number.isNaN(x)) ? null : Numb
 
 const reduceMotion = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 // Count-up used for the gauge's center number, its legend values and each
-// metric bar's number -- the page's one signature motion moment (staged scan
+// readout's number -- the page's one signature motion moment (staged scan
 // -> arc draw -> numbers landing on their value). Anything static (e.g. "—"
 // for a null/undefined value) is written directly by the caller and never
 // passed in here.
@@ -344,15 +534,6 @@ function animateNumber(el, target, decimals){
   })(start);
 }
 
-const META = {
-  faithfulness:      ["Faithfulness",       "share of the answer the passages actually entail"],
-  attribution:       ["Attribution",        "do the citations point at the right passage"],
-  relevance:         ["Context relevance",  "did retrieval find material related to the question"],
-  answer_relevance:  ["Answer relevance",   "does the answer address the question asked"],
-  conciseness:       ["Conciseness",        "redundancy among the answer's own claims"],
-  contradiction_rate:["Contradiction (κ)",  "claims the passages actively refute"],
-};
-const ORDER = ["faithfulness","attribution","relevance","answer_relevance","conciseness","contradiction_rate"];
 const tone = (k,v) => k === "contradiction_rate"
   ? (v > .5 ? "var(--bad)" : v > .25 ? "var(--warn)" : "var(--ok)")
   : (v >= .7 ? "var(--ok)" : v >= .4 ? "var(--warn)" : "var(--bad)");
@@ -361,19 +542,69 @@ const fmtMs = x => (x === null || x === undefined || Number.isNaN(Number(x))) ? 
 const fmtPct = x => (x === null || x === undefined || Number.isNaN(Number(x))) ? "—" : Math.round(Number(x) * 100) + "%";
 const fmtTrust = x => (x === null || x === undefined || Number.isNaN(Number(x))) ? "—" : Number(x).toFixed(3);
 
-// Compact per-run cost readout, rendered next to the trust gauge (or, for an
-// abstention, next to the verdict that replaces it) so a single run's cost is
-// visible without opening the Evaluation panel below. Reads `stage_timings`
-// straight off the /answer response.
 function stageChipsHtml(stages){
   const inner = (Array.isArray(stages) && stages.length)
     ? stages.map(s => `<span class="chip">${esc(s.stage)} <b class="mono">${fmtMs(s.ms)}</b></span>`).join("")
     : "";
-  return `<div id="runStages" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:14px">${inner}</div>`;
+  return `<div class="stage-chips" id="runStages">${inner}</div>`;
+}
+
+function readoutCell(label, value, hint, key){
+  const missing = value === null || value === undefined || Number.isNaN(Number(value));
+  const v = missing ? null : Number(value);
+  const color = missing ? "var(--text-3)" : tone(key, v);
+  const pct = missing ? 0 : Math.max(0, Math.min(1, v)) * 100;
+  return `<div class="readout">
+    <div class="readout-k">${esc(label)}</div>
+    <div class="readout-v" style="color:${color}" ${missing ? "" : `data-target="${v}"`}>${missing ? "—" : "0.000"}</div>
+    <div class="readout-track">${missing ? "" : `<i class="fill" style="background:${color}" data-w="${pct}"></i>`}</div>
+    <div class="readout-h">${missing ? "undefined · dropped from the score" : esc(hint)}</div>
+  </div>`;
+}
+
+function readoutStrip(m, t){
+  const cells = [
+    ["Trust", t.geometric, "geometric · non-compensatory", "t"],
+    ["Faithfulness", m.faithfulness, "share the passages actually entail", "faithfulness"],
+    ["Attribution", m.attribution,
+      (m.attribution_precision != null || m.attribution_recall != null)
+        ? `precision ${f3(m.attribution_precision) ?? "—"} · recall ${f3(m.attribution_recall) ?? "—"}`
+        : "citations point at the right passage",
+      "attribution"],
+    ["Relevance", m.relevance, "retrieval found related material", "relevance"],
+  ];
+  if (m.answer_relevance !== undefined) {
+    cells.push(["Answer rel.", m.answer_relevance, "answers the question asked", "answer_relevance"]);
+  }
+  cells.push(
+    ["Conciseness", m.conciseness, "redundancy among the answer's claims", "conciseness"],
+    ["Contradiction", m.contradiction_rate, "κ · passages actively refute", "contradiction_rate"],
+  );
+  const extra = cells.length === 7 ? " readouts-7" : "";
+  return `<div class="readouts${extra}">${cells.map(c => readoutCell(...c)).join("")}</div>`;
+}
+
+function gaugeTicks(){
+  const cx = 66, cy = 66, r0 = 61.5, r1 = 64.2, rMaj = 59.8;
+  let d = "";
+  for (let i = 0; i < 24; i++){
+    const a = (i / 24) * Math.PI * 2 - Math.PI / 2;
+    const major = i % 6 === 0;
+    const inner = major ? rMaj : r0;
+    d += `<line x1="${cx + Math.cos(a)*inner}" y1="${cy + Math.sin(a)*inner}"
+                x2="${cx + Math.cos(a)*r1}" y2="${cy + Math.sin(a)*r1}"
+                stroke="${major ? "#5d7388" : "#2c3640"}" stroke-width="${major ? 1.2 : 0.8}" stroke-linecap="round"/>`;
+  }
+  // Threshold tick at 0.50 on the outer ring (geometric ≥ 0.50 ⇒ trustworthy)
+  const th = 0.5 * Math.PI * 2 - Math.PI / 2;
+  d += `<line x1="${cx + Math.cos(th)*56}" y1="${cy + Math.sin(th)*56}"
+              x2="${cx + Math.cos(th)*65}" y2="${cy + Math.sin(th)*65}"
+              stroke="#e8b44c" stroke-width="1.6" stroke-linecap="round"/>`;
+  return d;
 }
 
 function gauge(arith, geom){
-  const R = 52, SW = 11, R2 = R - SW - 3;
+  const R = 52, SW = 10, R2 = R - SW - 3;
   const C = 2 * Math.PI * R, C2 = 2 * Math.PI * R2;
   const clamp = v => Math.max(0, Math.min(1, Number(v) || 0));
   const gap = (Number(arith) || 0) - (Number(geom) || 0);
@@ -383,23 +614,26 @@ function gauge(arith, geom){
   <div class="gauge">
     <svg width="132" height="132" viewBox="0 0 132 132" role="img"
          aria-label="Trust: geometric ${f3(geom) ?? "unavailable"}, arithmetic ${f3(arith) ?? "unavailable"}">
-      <circle cx="66" cy="66" r="${R}" fill="none" stroke="#0e1013" stroke-width="${SW}"/>
-      <circle class="gauge-ring" cx="66" cy="66" r="${R}" fill="none" stroke="#2a313a" stroke-width="${SW}"
+      <circle cx="66" cy="66" r="${R}" fill="none" stroke="#0c0e12" stroke-width="${SW}"/>
+      <circle class="gauge-ring" cx="66" cy="66" r="${R}" fill="none" stroke="#3d4f63" stroke-width="${SW}"
               stroke-linecap="round" stroke-dasharray="${C} ${C}" stroke-dashoffset="${C}" data-off="${offA}"
               transform="rotate(-90 66 66)"/>
-      <circle cx="66" cy="66" r="${R2}" fill="none" stroke="#0e1013" stroke-width="${SW}"/>
+      <circle cx="66" cy="66" r="${R2}" fill="none" stroke="#0c0e12" stroke-width="${SW}"/>
       <circle class="gauge-ring" cx="66" cy="66" r="${R2}" fill="none" stroke="${tone('t', geom)}" stroke-width="${SW}"
               stroke-linecap="round" stroke-dasharray="${C2} ${C2}" stroke-dashoffset="${C2}" data-off="${offG}"
               transform="rotate(-90 66 66)"/>
-      <text x="66" y="61" text-anchor="middle" fill="#f2f4f7" style="font:600 24px var(--font-mono)"
+      ${gaugeTicks()}
+      <text x="66" y="62" text-anchor="middle" fill="#eef1f4" style="font:600 22px var(--font-mono)"
             data-target="${haveG ? geom : ""}">${haveG ? "0.000" : "—"}</text>
-      <text x="66" y="80" text-anchor="middle" fill="#7f8a97" style="font:500 9.5px var(--font-mono);letter-spacing:.14em">TRUST</text>
+      <text x="66" y="78" text-anchor="middle" fill="#7a8490" style="font:500 9px var(--font-mono);letter-spacing:.16em">TRUST</text>
     </svg>
     <div class="legend">
       <div class="row"><span class="swatch" style="background:${tone('t',geom)}"></span>
         Geometric <span class="val" data-target="${haveG ? geom : ""}">${haveG ? "0.000" : "—"}</span></div>
-      <div class="row"><span class="swatch" style="background:#2a313a"></span>
+      <div class="row"><span class="swatch" style="background:#3d4f63"></span>
         Arithmetic <span class="val" data-target="${haveA ? arith : ""}">${haveA ? "0.000" : "—"}</span></div>
+      <div class="row"><span class="swatch" style="background:#e8b44c"></span>
+        Threshold <span class="val">0.500</span></div>
       <div class="collapse-note">${gap > 0.04
         ? `The geometric score sits <b>${gap.toFixed(3)} lower</b>. It is non-compensatory — one weak dimension pulls it down, where the arithmetic mean lets the others mask it.`
         : `Both aggregates agree, so no single dimension is dragging. The geometric form can never exceed the arithmetic one.`}</div>
@@ -407,24 +641,16 @@ function gauge(arith, geom){
   </div>`;
 }
 
-function metricRow(k, v){
-  const [name, hint] = META[k] || [k, ""];
-  if (v === null || v === undefined) {
-    return `<div class="metric"><div class="lab"><span class="name">${name}</span>
-      <span class="num na">undefined</span></div><div class="track"></div>
-      <div class="hint">not computable for this answer — dropped from the score, not counted as zero</div></div>`;
-  }
-  return `<div class="metric">
-    <div class="lab"><span class="name">${name}</span><span class="num" style="color:${tone(k,v)}" data-target="${v}">0.000</span></div>
-    <div class="track"><i class="fill" style="background:${tone(k,v)}" data-w="${Math.max(0,Math.min(1,v))*100}"></i></div>
-    <div class="hint">${hint}</div></div>`;
-}
-
 const linkCites = t => esc(t).replace(/\[(\d+)\]/g, (_, n) => `<span class="cite" data-p="${n}" role="button" tabindex="0">[${n}]</span>`);
 
 let scanTimer = null;
+const workspace = document.querySelector(".workspace");
+function setWorking(on){
+  workspace.classList.toggle("is-working", !!on);
+}
 function startScan(){
-  const steps = [...document.querySelectorAll(".scan .step")];
+  setWorking(true);
+  const steps = [...document.querySelectorAll("#scan .step")];
   steps.forEach(s => s.className = "step");
   $("#scan").classList.add("show");
   $("#stage").classList.remove("show");
@@ -439,27 +665,38 @@ function startScan(){
 const stopScan = () => { clearTimeout(scanTimer); $("#scan").classList.remove("show"); };
 
 function render(d){
+  setWorking(true);
   const m = d.metrics || {}, t = d.trust || {};
   let h = "";
 
   if (d.abstained){
-    h += `<div class="verdict abst"><div>
-      <div class="big">Declined to answer</div>
-      <div class="sub">${esc(d.abstain_reason || "Nothing in the corpus supports an answer.")}</div>
-    </div></div>
+    h += `<div class="verdict abst">
+      <span class="verdict-pip" aria-hidden="true"></span>
+      <div>
+        <div class="big">Declined to answer</div>
+        <div class="sub">${esc(d.abstain_reason || "Nothing in the corpus supports an answer.")}</div>
+      </div>
+    </div>
     <div class="card"><h2>Why this is the correct outcome</h2>
-    <p style="margin:0;color:var(--text-2);font-size:13.5px;line-height:1.7">
+    <p style="margin:0;color:var(--text-2);font-size:13px;line-height:1.65">
     The retrieval gate fires <em>before</em> generation, so a question the corpus cannot answer costs
     nothing to refuse. Declining is a first-class result here — a system that always answers has no
     way to tell you when it should not have.</p>${stageChipsHtml(d.stage_timings)}</div>`;
   } else {
     const ok = d.is_trustworthy;
-    h += `<div class="verdict ${ok ? "ok" : "no"}"><div>
-      <div class="big">${ok ? "Answer met the trust threshold" : "Answer fell below the trust threshold"}</div>
-      <div class="sub">${ok
-        ? "Grounding, citation accuracy and relevance all cleared their bars."
-        : "At least one dimension is weak enough to pull the non-compensatory score down."}</div>
-    </div></div>`;
+    const g = t.geometric;
+    h += `<div class="verdict ${ok ? "ok" : "no"}">
+      <span class="verdict-pip" aria-hidden="true"></span>
+      <div>
+        <div class="big">${ok ? "Answer met the trust threshold" : "Answer fell below the trust threshold"}</div>
+        <div class="sub">${ok
+          ? "Grounding, citation accuracy and relevance all cleared their bars."
+          : "At least one dimension is weak enough to pull the non-compensatory score down."}</div>
+      </div>
+      <div class="verdict-score"><span ${g == null ? "" : `data-target="${g}"`}>${g == null ? "—" : "0.000"}</span><span class="unit">geometric</span></div>
+    </div>`;
+
+    h += readoutStrip(m, t);
 
     h += `<div class="cols"><div>
       <div class="card"><h2>Answer</h2><div class="answer">${linkCites(d.answer)}</div></div>`;
@@ -470,7 +707,7 @@ function render(d){
     const support = d.per_claim_support || [];
     const cites = d.citations || {};
     if (d.claims && d.claims.length){
-      h += `<div class="card" style="margin-top:18px"><h2>Per-claim grounding</h2><div class="tblwrap">
+      h += `<div class="card"><h2>Per-claim grounding</h2><div class="tblwrap">
         <table><thead><tr><th>Claim</th><th style="text-align:right">Support</th><th style="text-align:right">Cites</th></tr></thead><tbody>` +
         d.claims.map((c,i) => {
           const s = support[i];
@@ -479,21 +716,19 @@ function render(d){
             <td class="n" style="color:${s === undefined ? "var(--text-3)" : tone('faithfulness', s)}">${f3(s) ?? "—"}</td>
             <td class="n" style="color:var(--text-3)">${p === undefined ? "—" : "#" + (p + 1)}</td></tr>`;
         }).join("") + `</tbody></table>
-        <p class="hint" style="margin:10px 0 0;font-size:11.5px;color:var(--text-3)">
+        <p class="hint" style="margin:10px 0 0">
         Support is the best entailment probability across retrieved passages. A claim can be
         well-supported yet uncited — that gap is exactly what attribution measures.</p>
         </div></div>`;
     }
     h += `</div><div>
-      <div class="card">${gauge(t.arithmetic, t.geometric)}${stageChipsHtml(d.stage_timings)}</div>
-      <div class="card" style="margin-top:18px"><h2>Metrics</h2>${
-        ORDER.filter(k => k in m).map(k => metricRow(k, m[k])).join("")}</div>
+      <div class="card"><h2>Trust instrument</h2>${gauge(t.arithmetic, t.geometric)}${stageChipsHtml(d.stage_timings)}</div>
       </div></div>`;
   }
 
   const ps = d.passages || [];
   if (ps.length){
-    h += `<div class="card" style="margin-top:18px"><h2>Retrieved passages</h2>` +
+    h += `<div class="card" style="margin-top:12px"><h2>Retrieved passages</h2>` +
       ps.map((p,i) => {
         let src = "";
         if (p.source && p.source.source){
@@ -542,7 +777,7 @@ function renderEvalPanel(data){
     return;
   }
 
-  let h = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">
+  let h = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">
     <span class="chip">runs <b class="mono">${stats.count}</b></span>
     <span class="chip">abstention <b class="mono">${fmtPct(stats.abstention_rate)}</b></span>
     <span class="chip">p50 <b class="mono">${fmtMs(stats.p50_ms)}</b></span>
@@ -553,7 +788,7 @@ function renderEvalPanel(data){
   // Latency breakdown: mean ms per stage across the traces this call returned
   // (not the full ring buffer) -- the payoff of the panel, showing where the
   // time actually goes. Bars scale to the largest stage mean, matching the
-  // .fill pattern used for the per-metric bars above.
+  // readout tracks used for the per-metric strip above.
   const sums = {}, counts = {};
   traces.forEach(t => (t.stages || []).forEach(s => {
     sums[s.stage] = (sums[s.stage] || 0) + (Number(s.ms) || 0);
@@ -562,10 +797,13 @@ function renderEvalPanel(data){
   const means = STAGE_ORDER.filter(k => counts[k]).map(k => ({stage: k, mean: sums[k] / counts[k]}));
   if (means.length){
     const maxMean = Math.max(...means.map(m => m.mean), 0.001);
-    h += `<div style="margin-bottom:20px">` + means.map(m => `
-      <div class="metric">
-        <div class="lab"><span class="name">${esc(m.stage)}</span><span class="num">${fmtMs(m.mean)}</span></div>
-        <div class="track"><i class="fill" style="background:var(--accent)" data-w="${(m.mean / maxMean * 100).toFixed(1)}"></i></div>
+    h += `<div style="margin-bottom:16px">` + means.map(m => `
+      <div class="readout" style="margin-bottom:8px;padding:8px 10px">
+        <div style="display:flex;align-items:baseline;gap:8px">
+          <span class="readout-k">${esc(m.stage)}</span>
+          <span class="readout-v" style="font-size:13px;margin:0 0 0 auto">${fmtMs(m.mean)}</span>
+        </div>
+        <div class="readout-track" style="margin-top:6px"><i class="fill" style="background:var(--accent)" data-w="${(m.mean / maxMean * 100).toFixed(1)}"></i></div>
       </div>`).join("") + `</div>`;
   }
 
@@ -578,8 +816,8 @@ function renderEvalPanel(data){
       <th style="text-align:right">Trust</th><th style="text-align:right">Total</th>
     </tr></thead><tbody>` +
     rows.map(t => `<tr>
-      <td style="font:12.5px var(--font-mono);color:var(--text-2)">${esc(t.question_hash)}</td>
-      <td style="color:var(--text-3);font-size:12.5px">${t.corpus_id ? esc(t.corpus_id) : "demo"}</td>
+      <td style="font:12px var(--font-mono);color:var(--text-2)">${esc(t.question_hash)}</td>
+      <td style="color:var(--text-3);font-size:12px">${t.corpus_id ? esc(t.corpus_id) : "demo"}</td>
       <td>${t.abstained
         ? `<span style="color:var(--warn)">abstained</span>`
         : `<span style="color:var(--ok)">answered</span>`}</td>
@@ -785,10 +1023,8 @@ fetch("/api/examples").then(r => r.json()).then(list => {
   const out = list.filter(x => x.category !== "pdf").slice(0, 2);
   $("#ex").innerHTML = [...inC, ...out].map(x =>
     `<button class="ex" data-kind="${x.category === "pdf" ? "in" : "out"}">${esc(x.question)}</button>`).join("");
-  // Scoped to #ex, NOT document-wide: the delete-corpus button reuses the .ex
-  // class for its styling, and this runs after page load, so a document-wide
-  // selector would overwrite that button's own click handler -- clicking
-  // "delete corpus" would silently ask "delete corpus" as a question instead.
+  // Scoped to #ex, NOT document-wide: a document-wide selector would also
+  // match any later-rendered control that reused the class.
   $("#ex").querySelectorAll(".ex").forEach(b => b.onclick = () => { $("#q").value = b.textContent; ask(b.textContent); });
 }).catch(() => {});
 
