@@ -55,13 +55,14 @@ left at the example's defaults unless you want a different OmniRoute model.
 excludes it) and leave its permissions readable only by `admin`
 (`chmod 600 .env`).
 
-## 5. Drop in the dashboard build (built separately, not part of this repo change)
+## 5. Dashboard (in-repo static files)
 
-Whoever built `dashboard/index.html` (+ assets) should place that directory at
-`/home/admin/projects/rag-trustworthiness-industrial/dashboard/`. If it isn't
-there yet, that's fine -- the service starts without it and serves the API
-only (a warning is logged); add the directory later and restart the service
-(step 7) to pick it up.
+`dashboard/` ships in this repository (`index.html`, `logo.svg`, `favicon.svg`).
+The uvicorn process serves it from that directory. A missing `dashboard/` does
+not take the API down -- the service logs a warning and continues with
+`/health`, `/config`, `/answer` only. After a `git pull` that changes the
+dashboard, restart the service (step 7 / "Updating after a code change") so
+uvicorn re-reads the files.
 
 ## 6. Install and start the systemd service
 
@@ -118,10 +119,25 @@ still reachable at `/health`, `/config`, `/answer`, `/api/examples`) if not.
 
 ```bash
 cd /home/admin/projects/rag-trustworthiness-industrial
-git pull
-.venv/bin/pip install -e .        # only if dependencies changed
+git pull origin main
+.venv/bin/pip install -e .        # only if Python dependencies changed
 sudo systemctl restart ragtrust
 ```
+
+UI-only pulls (`dashboard/index.html`, `logo.svg`, `favicon.svg`) are read from
+disk on each request, so `git pull` is usually enough to change what the
+browser gets. Restart anyway — it is harmless, and it is required if
+`dashboard/` was missing the last time the unit started (the static mount is
+decided at process start). Hard-refresh the tab if it still shows the old
+sparkline. No Caddy reload, no pip install, no Cloudflare / R2 step. Confirm:
+
+```bash
+curl -sI https://ragtrust.169.58.185.43.sslip.io/logo.svg | head
+curl -sI https://ragtrust.169.58.185.43.sslip.io/favicon.svg | head
+```
+
+and open `https://ragtrust.169.58.185.43.sslip.io/` — nav should show the
+octagonal citation-seal mark.
 
 ## Rolling back
 

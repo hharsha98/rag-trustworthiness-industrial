@@ -205,11 +205,8 @@ def test_answer_unreachable_generator_returns_503(tmp_path):
 
 
 def test_create_app_still_exposes_health_and_answer_without_dashboard_dir(tmp_path):
-    """`dashboard/` does not exist in this repo (a frontend built separately,
-    per the task boundaries), so every test in this file already exercises the
-    "missing frontend" path -- create_app must still start (no crash, just a
-    logged warning) and /health, /answer must still be routed normally rather
-    than swallowed by a static-file mount or 404."""
+    """API routes are registered before the static mount, so /health and
+    /answer stay reachable whether or not dashboard/ is present."""
     client = _client(
         tmp_path,
         generator=StubGenerator(text="Photosynthesis converts sunlight into chemical energy."),
@@ -222,6 +219,30 @@ def test_create_app_still_exposes_health_and_answer_without_dashboard_dir(tmp_pa
     resp = client.post("/answer", json={"question": "How does photosynthesis work?"})
     assert resp.status_code == 200
     assert "trust" in resp.json()
+
+
+def test_dashboard_serves_index_logo_and_favicon(tmp_path):
+    """The live UI lives in dashboard/ and is mounted at /. The citation-seal
+    assets must be reachable, and must not shadow /health."""
+    client = _client(tmp_path)
+
+    index = client.get("/")
+    assert index.status_code == 200
+    assert "text/html" in index.headers["content-type"]
+    assert "RAG Trust" in index.text
+    assert "/logo.svg" in index.text
+    assert "/favicon.svg" in index.text
+
+    logo = client.get("/logo.svg")
+    assert logo.status_code == 200
+    assert b"<svg" in logo.content
+    assert b"Citation Seal" in logo.content
+
+    fav = client.get("/favicon.svg")
+    assert fav.status_code == 200
+    assert b"<svg" in fav.content
+
+    assert client.get("/health").status_code == 200
 
 
 def test_api_examples_returns_a_list_without_erroring(tmp_path):
