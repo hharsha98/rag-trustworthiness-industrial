@@ -29,19 +29,51 @@
   --font-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
   --font-display:"IBM Plex Serif",Georgia,"Times New Roman",serif;
   --t:150ms cubic-bezier(.4,0,.2,1);
+
+  /* Spacing scale, 2px base. The file's real values are 2/4/6/8/10/12/14/16/
+     18/20/22/28/32 with no consistent stride -- a 4px base would round some
+     of those up or down and break the "renders identically" guarantee for
+     this commit. sp-9/sp-11 (18/22) sitting off a clean 4px grid are
+     consolidation candidates for a later, value-changing pass. */
+  --sp-1:2px; --sp-2:4px; --sp-3:6px; --sp-4:8px; --sp-5:10px; --sp-6:12px;
+  --sp-7:14px; --sp-8:16px; --sp-9:18px; --sp-10:20px; --sp-11:22px; --sp-12:28px; --sp-13:32px;
+
+  /* Type scale. The half-steps (10.5/12.5/14.5px) exist only because the
+     file already sets them in specific places; rounding them to whole
+     pixels is a visual change, however small, and belongs in its own
+     commit -- not this one. */
+  --fs-2xs:9px; --fs-xs:10px; --fs-xs-5:10.5px; --fs-sm:11px; --fs-base:12px;
+  --fs-base-5:12.5px; --fs-md:13.5px; --fs-lg:14px; --fs-lg-5:14.5px; --fs-xl:18px;
+
+  /* Elevation -- one token per distinct box-shadow / drop-shadow value
+     already in the file, copied byte-for-byte. */
+  --shadow-ring-ok-3:0 0 0 3px var(--signal-dim);
+  --shadow-ring-bad-3:0 0 0 3px rgba(255,107,107,.16);
+  --shadow-ring-accent-3:0 0 0 3px var(--accent-dim);
+  --shadow-ring-ok-4:0 0 0 4px var(--signal-dim);
+  --shadow-ring-bad-4:0 0 0 4px rgba(255,107,107,.14);
+  --shadow-ring-warn-4:0 0 0 4px rgba(232,180,76,.14);
+  --shadow-seal:0 12px 32px rgba(77,163,255,.35);
+  --shadow-panel:0 20px 48px -32px rgba(0,0,0,.9);
+  --shadow-inset-hairline:inset 0 1px 0 rgba(255,255,255,.04);
+
+  /* Motion. --t above is left untouched (kept as a literal alias) so every
+     existing `transition: ... var(--t)` keeps resolving exactly as before. */
+  --dur-1:150ms; --dur-2:300ms; --dur-3:400ms; --dur-4:800ms; --dur-5:900ms; --dur-6:1150ms;
+  --ease-out:cubic-bezier(.22,1,.36,1); --ease-std:cubic-bezier(.4,0,.2,1);
 }
 *{box-sizing:border-box}
 html,body{height:100%}
 body{
   margin:0;background:var(--bg);color:var(--text);
-  font:400 14px/1.5 var(--font-ui);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  font:400 var(--fs-lg)/1.5 var(--font-ui);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
 }
 body::before{
   content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
   background-image:
     linear-gradient(to right, var(--hairline) 1px, transparent 1px),
     linear-gradient(to bottom, var(--hairline) 1px, transparent 1px);
-  background-size:28px 28px;
+  background-size:var(--sp-12) var(--sp-12);
   mask-image:radial-gradient(ellipse 80% 55% at 50% -10%, #000 30%, transparent 78%);
   -webkit-mask-image:radial-gradient(ellipse 80% 55% at 50% -10%, #000 30%, transparent 78%);
 }
@@ -49,128 +81,128 @@ body::before{
 .sr-only{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
 a{color:inherit}
 :focus{outline:none}
-:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:var(--r-sm)}
+:focus-visible{outline:var(--sp-1) solid var(--accent);outline-offset:var(--sp-1);border-radius:var(--r-sm)}
 .skip-link{
-  position:absolute;left:12px;top:-48px;z-index:100;background:var(--accent);color:var(--accent-ink);
-  padding:8px 12px;border-radius:var(--r-sm);font:600 12px var(--font-ui);text-decoration:none;
+  position:absolute;left:var(--sp-6);top:-48px;z-index:100;background:var(--accent);color:var(--accent-ink);
+  padding:var(--sp-4) var(--sp-6);border-radius:var(--r-sm);font:600 var(--fs-base) var(--font-ui);text-decoration:none;
   transition:top var(--t);
 }
-.skip-link:focus-visible{top:12px}
+.skip-link:focus-visible{top:var(--sp-6)}
 
 /* ============ top bar ============ */
 .topbar{
   position:sticky;top:0;z-index:40;background:rgba(12,14,18,.82);
-  backdrop-filter:saturate(1.4) blur(12px);-webkit-backdrop-filter:saturate(1.4) blur(12px);
+  backdrop-filter:saturate(1.4) blur(var(--sp-6));-webkit-backdrop-filter:saturate(1.4) blur(var(--sp-6));
   border-bottom:1px solid var(--border);
 }
-.topbar-inner{max-width:1180px;margin:0 auto;padding:0 20px;min-height:56px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.brand{display:flex;align-items:center;gap:10px;text-decoration:none;flex:none;color:var(--text)}
-.brand-mark{flex:none;display:block;width:32px;height:32px}
+.topbar-inner{max-width:1180px;margin:0 auto;padding:0 var(--sp-10);min-height:56px;display:flex;align-items:center;gap:var(--sp-7);flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:var(--sp-5);text-decoration:none;flex:none;color:var(--text)}
+.brand-mark{flex:none;display:block;width:var(--sp-13);height:var(--sp-13)}
 .brand-text{display:flex;flex-direction:column;gap:1px;line-height:1.05}
-.brand-name{font-size:13.5px;font-weight:600;letter-spacing:.01em}
+.brand-name{font-size:var(--fs-md);font-weight:600;letter-spacing:.01em}
 .brand-kicker{
-  font:500 9px/1 var(--font-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--text-3);
+  font:500 var(--fs-2xs)/1 var(--font-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--text-3);
 }
-.top-nav{display:flex;align-items:center;gap:18px;margin-left:8px}
+.top-nav{display:flex;align-items:center;gap:var(--sp-9);margin-left:var(--sp-4)}
 .top-nav a{
-  font:500 11px/1 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);
+  font:500 var(--fs-sm)/1 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);
   text-decoration:none;transition:color var(--t);
 }
 .top-nav a:hover{color:var(--text)}
 @media (max-width:720px){.top-nav{display:none}}
-.status-cluster{margin-left:auto;display:flex;align-items:center;gap:6px;flex-wrap:wrap;row-gap:6px}
+.status-cluster{margin-left:auto;display:flex;align-items:center;gap:var(--sp-3);flex-wrap:wrap;row-gap:var(--sp-3)}
 @media (max-width:480px){
   .status-cluster{margin-left:0;width:100%}
 }
 .chip{
-  display:inline-flex;align-items:center;gap:6px;font:500 11px/1 var(--font-mono);color:var(--text-2);
-  border:1px solid var(--border);border-radius:999px;background:var(--s2);padding:6px 10px;
+  display:inline-flex;align-items:center;gap:var(--sp-3);font:500 var(--fs-sm)/1 var(--font-mono);color:var(--text-2);
+  border:1px solid var(--border);border-radius:999px;background:var(--s2);padding:var(--sp-3) var(--sp-5);
   white-space:nowrap;letter-spacing:.02em;
 }
 .chip b{color:var(--text);font-weight:600}
 .chip b.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
 .chip-toggle{
-  cursor:pointer;font:500 11px var(--font-mono);
+  cursor:pointer;font:500 var(--fs-sm) var(--font-mono);
   transition:border-color var(--t),color var(--t),background var(--t);
 }
 .chip-toggle:hover{border-color:var(--border-2);color:var(--text)}
 .chip-toggle[aria-expanded="true"]{border-color:var(--accent);color:var(--text);background:var(--accent-dim)}
-.chevron{font-size:10px}
-.dot{width:6px;height:6px;border-radius:50%;background:var(--text-3);display:inline-block;flex:none}
-.dot.on{background:var(--ok);box-shadow:0 0 0 3px var(--signal-dim)}
-.dot.off{background:var(--bad);box-shadow:0 0 0 3px rgba(255,107,107,.16)}
+.chevron{font-size:var(--fs-xs)}
+.dot{width:var(--sp-3);height:var(--sp-3);border-radius:50%;background:var(--text-3);display:inline-block;flex:none}
+.dot.on{background:var(--ok);box-shadow:var(--shadow-ring-ok-3)}
+.dot.off{background:var(--bad);box-shadow:var(--shadow-ring-bad-3)}
 
 /* ============ workspace shell ============ */
-.workspace{max-width:1180px;margin:0 auto;padding:28px 20px 64px;position:relative;z-index:1}
+.workspace{max-width:1180px;margin:0 auto;padding:var(--sp-12) var(--sp-10) 64px;position:relative;z-index:1}
 .workspace::before{
   content:"";position:absolute;top:-40px;right:4%;width:420px;height:320px;pointer-events:none;
   background:radial-gradient(ellipse, rgba(77,163,255,.11), transparent 68%);
 }
-.workspace.is-working{padding-top:16px}
+.workspace.is-working{padding-top:var(--sp-8)}
 .workspace.is-working .hero,
 .workspace.is-working .idle-plate{display:none}
 
 /* ============ idle hero (hidden once a run starts) ============ */
 .hero{
-  display:grid;grid-template-columns:1.15fr .85fr;gap:28px;align-items:center;
-  margin-bottom:22px;min-height:220px;
+  display:grid;grid-template-columns:1.15fr .85fr;gap:var(--sp-12);align-items:center;
+  margin-bottom:var(--sp-11);min-height:220px;
 }
-.hero-pills{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.hero-pills{display:flex;flex-wrap:wrap;gap:var(--sp-4);margin-bottom:var(--sp-7)}
 .pill{
-  font:500 10px/1 var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--text-2);
+  font:500 var(--fs-xs)/1 var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--text-2);
   border:1px solid var(--border);border-radius:999px;padding:7px 11px;background:rgba(18,21,26,.72);
 }
-.pill .live{width:6px;height:6px;border-radius:50%;background:var(--ok);display:inline-block;margin-right:6px;box-shadow:0 0 0 3px var(--signal-dim);vertical-align:middle}
+.pill .live{width:var(--sp-3);height:var(--sp-3);border-radius:50%;background:var(--ok);display:inline-block;margin-right:var(--sp-3);box-shadow:var(--shadow-ring-ok-3);vertical-align:middle}
 .hero-display{
-  font:400 clamp(28px,4.2vw,44px)/1.12 var(--font-display);letter-spacing:-.03em;margin:0 0 12px;max-width:18ch;
+  font:400 clamp(28px,4.2vw,44px)/1.12 var(--font-display);letter-spacing:-.03em;margin:0 0 var(--sp-6);max-width:18ch;
 }
 .hero-display em{
   font-style:italic;
   background:linear-gradient(100deg,var(--accent) 10%,#9ad0ff 48%,var(--signal));
   -webkit-background-clip:text;background-clip:text;color:transparent;
 }
-.hero-sub{margin:0;color:var(--text-2);font-size:14.5px;max-width:42ch;line-height:1.55}
+.hero-sub{margin:0;color:var(--text-2);font-size:var(--fs-lg-5);max-width:42ch;line-height:1.55}
 .hero-visual{
   position:relative;height:300px;display:flex;align-items:center;justify-content:center;
 }
 .hero-bezel{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .hero-seal{
-  position:relative;z-index:1;width:104px;height:104px;filter:drop-shadow(0 12px 32px rgba(77,163,255,.35));
+  position:relative;z-index:1;width:104px;height:104px;filter:drop-shadow(var(--shadow-seal));
 }
 @media (max-width:860px){
-  .hero{grid-template-columns:1fr;min-height:0;gap:8px;margin-bottom:16px}
+  .hero{grid-template-columns:1fr;min-height:0;gap:var(--sp-4);margin-bottom:var(--sp-8)}
   .hero-visual{display:none}
   .hero-display{max-width:none}
 }
 
 /* idle faceplate — fills the void with the metric taxonomy */
-.idle-plate{margin-top:18px}
+.idle-plate{margin-top:var(--sp-9)}
 .idle-head{
-  display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:10px;flex-wrap:wrap;
+  display:flex;align-items:baseline;justify-content:space-between;gap:var(--sp-6);margin-bottom:var(--sp-5);flex-wrap:wrap;
 }
 .idle-k{
-  font:500 10px/1 var(--font-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--text-3);margin:0;
+  font:500 var(--fs-xs)/1 var(--font-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--text-3);margin:0;
 }
-.idle-note{margin:0;font-size:12px;color:var(--text-3)}
+.idle-note{margin:0;font-size:var(--fs-base);color:var(--text-3)}
 .legend-grid{
-  display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;
+  display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:var(--sp-4);
 }
 @media (max-width:980px){.legend-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:520px){.legend-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .legend-item{
-  border:1px solid var(--border);border-radius:var(--r);background:var(--s2);padding:12px 12px 13px;min-width:0;
+  border:1px solid var(--border);border-radius:var(--r);background:var(--s2);padding:var(--sp-6) var(--sp-6) 13px;min-width:0;
 }
 .legend-item .k{
-  font:500 10px/1 var(--font-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin:0 0 8px;
+  font:500 var(--fs-xs)/1 var(--font-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin:0 0 var(--sp-4);
 }
-.legend-item p{margin:0;font-size:12.5px;color:var(--text-2);line-height:1.4}
+.legend-item p{margin:0;font-size:var(--fs-base-5);color:var(--text-2);line-height:1.4}
 .path{
-  display:flex;flex-wrap:wrap;gap:0;margin-top:12px;border:1px solid var(--border);border-radius:var(--r);
+  display:flex;flex-wrap:wrap;gap:0;margin-top:var(--sp-6);border:1px solid var(--border);border-radius:var(--r);
   background:var(--s2);overflow:hidden;
 }
 .path span{
-  flex:1;min-width:88px;text-align:center;font:500 10.5px/1 var(--font-mono);letter-spacing:.08em;
-  text-transform:uppercase;color:var(--text-3);padding:11px 8px;position:relative;
+  flex:1;min-width:88px;text-align:center;font:500 var(--fs-xs-5)/1 var(--font-mono);letter-spacing:.08em;
+  text-transform:uppercase;color:var(--text-3);padding:11px var(--sp-4);position:relative;
 }
 .path span+span::before{
   content:"";position:absolute;left:0;top:22%;bottom:22%;width:1px;background:var(--border);
@@ -179,30 +211,30 @@ a{color:inherit}
 /* ============ composer ============ */
 .composer{
   border:1px solid var(--border);border-radius:var(--r-lg);background:var(--s2);
-  padding:16px 18px 18px;box-shadow:0 20px 48px -32px rgba(0,0,0,.9);
+  padding:var(--sp-8) var(--sp-9) var(--sp-9);box-shadow:var(--shadow-panel);
   position:relative;
 }
 .composer::after{
   content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+  box-shadow:var(--shadow-inset-hairline);
 }
-.composer-head{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin-bottom:12px}
+.composer-head{display:flex;flex-direction:column;align-items:flex-start;gap:var(--sp-3);margin-bottom:var(--sp-6)}
 .composer-label{
-  font:500 10px/1 var(--font-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--text-3);margin:0;
+  font:500 var(--fs-xs)/1 var(--font-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--text-3);margin:0;
 }
-.composer-tagline{margin:0;color:var(--text-2);font-size:12.5px}
-.composer-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.corpus-row{margin-bottom:10px}
-.ask-row{margin-top:10px;align-items:stretch}
+.composer-tagline{margin:0;color:var(--text-2);font-size:var(--fs-base-5)}
+.composer-row{display:flex;gap:var(--sp-4);align-items:center;flex-wrap:wrap}
+.corpus-row{margin-bottom:var(--sp-5)}
+.ask-row{margin-top:var(--sp-5);align-items:stretch}
 @media (max-width:520px){
   .ask-row{flex-direction:column}
   .ask-row .ask-input{width:100%}
-  .ask-row .btn-primary{width:100%;padding:12px 22px}
+  .ask-row .btn-primary{width:100%;padding:var(--sp-6) var(--sp-11)}
 }
 
 .select{
   background:var(--s1);border:1px solid var(--border);border-radius:var(--r-sm);
-  color:var(--text);font:400 12.5px var(--font-ui);padding:8px 10px;outline:none;cursor:pointer;
+  color:var(--text);font:400 var(--fs-base-5) var(--font-ui);padding:var(--sp-4) var(--sp-5);outline:none;cursor:pointer;
   transition:border-color var(--t);max-width:220px;
 }
 .select:hover{border-color:var(--border-2)}
@@ -210,7 +242,7 @@ a{color:inherit}
 
 .dropzone{
   flex:1;min-width:160px;border:1px dashed var(--border-2);border-radius:var(--r-sm);
-  color:var(--text-3);font-size:12px;padding:8px 12px;cursor:pointer;outline:none;text-align:center;
+  color:var(--text-3);font-size:var(--fs-base);padding:var(--sp-4) var(--sp-6);cursor:pointer;outline:none;text-align:center;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   transition:border-color var(--t),color var(--t),background var(--t);
 }
@@ -218,22 +250,22 @@ a{color:inherit}
 .dropzone.drag{border-color:var(--accent);color:var(--text);background:var(--accent-dim)}
 
 .btn-ghost{
-  font:500 12px var(--font-ui);color:var(--text-2);background:var(--s1);
-  border:1px solid var(--border);border-radius:var(--r-sm);padding:8px 12px;cursor:pointer;
+  font:500 var(--fs-base) var(--font-ui);color:var(--text-2);background:var(--s1);
+  border:1px solid var(--border);border-radius:var(--r-sm);padding:var(--sp-4) var(--sp-6);cursor:pointer;
   transition:border-color var(--t),color var(--t);white-space:nowrap;
 }
 .btn-ghost:hover{border-color:var(--bad);color:var(--bad)}
 
 .ask-input{
   flex:1;background:var(--s1);border:1px solid var(--border);border-radius:var(--r);
-  color:var(--text);font:400 14.5px/1.4 var(--font-ui);padding:12px 14px;outline:none;min-width:0;
+  color:var(--text);font:400 var(--fs-lg-5)/1.4 var(--font-ui);padding:var(--sp-6) var(--sp-7);outline:none;min-width:0;
   transition:border-color var(--t),box-shadow var(--t);
 }
 .ask-input::placeholder{color:var(--text-3)}
-.ask-input:focus-visible{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim)}
+.ask-input:focus-visible{border-color:var(--accent);box-shadow:var(--shadow-ring-accent-3)}
 
 .btn-primary{
-  border:0;border-radius:var(--r);padding:0 22px;cursor:pointer;white-space:nowrap;
+  border:0;border-radius:var(--r);padding:0 var(--sp-11);cursor:pointer;white-space:nowrap;
   font:600 13px var(--font-ui);letter-spacing:.02em;background:var(--accent);color:var(--accent-ink);
   transition:filter var(--t),transform 60ms ease;
 }
@@ -241,127 +273,159 @@ a{color:inherit}
 .btn-primary:active{transform:translateY(1px)}
 .btn-primary[disabled]{opacity:.45;cursor:not-allowed;filter:none}
 
-.examples{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.examples{display:flex;gap:var(--sp-3);flex-wrap:wrap;margin-top:var(--sp-6)}
 .ex{
-  font:400 12px var(--font-ui);color:var(--text-2);background:var(--s1);
-  border:1px solid var(--border);border-radius:var(--r-sm);padding:6px 10px;cursor:pointer;
+  font:400 var(--fs-base) var(--font-ui);color:var(--text-2);background:var(--s1);
+  border:1px solid var(--border);border-radius:var(--r-sm);padding:var(--sp-3) var(--sp-5);cursor:pointer;
   transition:border-color var(--t),color var(--t);text-align:left;
 }
 .ex:hover{border-color:var(--accent);color:var(--text)}
 .ex[data-kind="out"]{border-style:dashed}
 
-.confirm{color:var(--ok);font:12.5px var(--font-mono);padding:8px 2px 0}
-.err{color:var(--bad);font:12.5px var(--font-mono);padding:8px 2px}
+.confirm{color:var(--ok);font:var(--fs-base-5) var(--font-mono);padding:var(--sp-4) var(--sp-1) 0}
+.err{color:var(--bad);font:var(--fs-base-5) var(--font-mono);padding:var(--sp-4) var(--sp-1)}
 
 /* ============ scan (staged measurement sequence) ============ */
-.scan{display:none;padding:16px 12px;text-align:center}
-.scan.inline-scan{padding:10px 4px 2px}
+.scan{display:none;padding:var(--sp-8) var(--sp-6);text-align:center}
+.scan.inline-scan{padding:var(--sp-5) var(--sp-2) var(--sp-1)}
 .scan.show{display:block}
-.scan .steps{display:flex;justify-content:center;gap:0;flex-wrap:wrap;margin-bottom:10px}
+.scan .steps{display:flex;justify-content:center;gap:0;flex-wrap:wrap;margin-bottom:var(--sp-5)}
 .scan .step{
-  font:500 10.5px/1 var(--font-mono);letter-spacing:.04em;color:var(--text-3);padding:0 12px;position:relative;
-  transition:color .3s;text-transform:uppercase;
+  font:500 var(--fs-xs-5)/1 var(--font-mono);letter-spacing:.04em;color:var(--text-3);padding:0 var(--sp-6);position:relative;
+  transition:color var(--dur-2);text-transform:uppercase;
 }
 .scan .step.done{color:var(--ok)}
 .scan .step.active{color:var(--accent)}
-.scan .step+.step::before{content:"";position:absolute;left:0;top:50%;width:1px;height:10px;background:var(--border);transform:translateY(-50%)}
-.trace{height:2px;background:var(--s1);border-radius:2px;overflow:hidden;max-width:380px;margin:0 auto;border:1px solid var(--border)}
-.trace i{display:block;height:100%;width:38%;background:linear-gradient(90deg,transparent,var(--accent),transparent);animation:sweep 1.15s linear infinite}
+.scan .step+.step::before{content:"";position:absolute;left:0;top:50%;width:1px;height:var(--sp-5);background:var(--border);transform:translateY(-50%)}
+.trace{height:var(--sp-1);background:var(--s1);border-radius:var(--sp-1);overflow:hidden;max-width:380px;margin:0 auto;border:1px solid var(--border)}
+.trace i{display:block;height:100%;width:38%;background:linear-gradient(90deg,transparent,var(--accent),transparent);animation:sweep var(--dur-6) linear infinite}
 @keyframes sweep{from{transform:translateX(-100%)}to{transform:translateX(360%)}}
 
 /* ============ results ============ */
-.stage{margin-top:18px;display:none}
-.stage.show{display:block;animation:rise .4s cubic-bezier(.22,1,.36,1)}
-@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.stage{margin-top:var(--sp-9);display:none}
+.stage.show{display:block;animation:rise var(--dur-3) var(--ease-out)}
+@keyframes rise{from{opacity:0;transform:translateY(var(--sp-4))}to{opacity:1;transform:none}}
 
 .verdict{
-  display:flex;align-items:center;gap:14px;padding:12px 16px;border-radius:var(--r-lg);
-  border:1px solid var(--border);background:var(--s2);margin-bottom:12px;
+  display:flex;align-items:center;gap:var(--sp-7);padding:var(--sp-6) var(--sp-8);border-radius:var(--r-lg);
+  border:1px solid var(--border);background:var(--s2);margin-bottom:var(--sp-6);
 }
-.verdict-pip{width:10px;height:10px;border-radius:50%;flex:none}
-.verdict .big{font:600 14px var(--font-ui);letter-spacing:-.01em}
-.verdict .sub{color:var(--text-2);font-size:12.5px;margin-top:2px}
+.verdict-pip{width:var(--sp-5);height:var(--sp-5);border-radius:50%;flex:none}
+.verdict .big{font:600 var(--fs-lg) var(--font-ui);letter-spacing:-.01em}
+.verdict .sub{color:var(--text-2);font-size:var(--fs-base-5);margin-top:var(--sp-1)}
 .verdict-score{
-  margin-left:auto;text-align:right;font:600 18px/1 var(--font-mono);font-variant-numeric:tabular-nums;letter-spacing:-.03em;
+  margin-left:auto;text-align:right;font:600 var(--fs-xl)/1 var(--font-mono);font-variant-numeric:tabular-nums;letter-spacing:-.03em;
 }
-.verdict-score .unit{display:block;font:500 9px var(--font-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--text-3);margin-top:4px}
+.verdict-score .unit{display:block;font:500 var(--fs-2xs) var(--font-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--text-3);margin-top:var(--sp-2)}
 .verdict.ok{border-color:rgba(62,224,192,.32);background:linear-gradient(90deg,rgba(62,224,192,.08),var(--s2) 58%)}
-.verdict.ok .verdict-pip{background:var(--ok);box-shadow:0 0 0 4px var(--signal-dim)}
+.verdict.ok .verdict-pip{background:var(--ok);box-shadow:var(--shadow-ring-ok-4)}
 .verdict.no{border-color:rgba(255,107,107,.32);background:linear-gradient(90deg,rgba(255,107,107,.08),var(--s2) 58%)}
-.verdict.no .verdict-pip{background:var(--bad);box-shadow:0 0 0 4px rgba(255,107,107,.14)}
+.verdict.no .verdict-pip{background:var(--bad);box-shadow:var(--shadow-ring-bad-4)}
 .verdict.abst{border-color:rgba(232,180,76,.32);background:linear-gradient(90deg,rgba(232,180,76,.08),var(--s2) 58%)}
-.verdict.abst .verdict-pip{background:var(--warn);box-shadow:0 0 0 4px rgba(232,180,76,.14)}
+.verdict.abst .verdict-pip{background:var(--warn);box-shadow:var(--shadow-ring-warn-4)}
 @media (max-width:640px){
   .verdict-score{margin-left:0;width:100%}
 }
 
 .readouts{
-  display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin-bottom:12px;
+  display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:var(--sp-4);margin-bottom:var(--sp-6);
 }
 .readouts-7{grid-template-columns:repeat(7,minmax(0,1fr))}
 @media (max-width:1100px){.readouts-7{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media (max-width:980px){.readouts,.readouts-7{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:520px){.readouts,.readouts-7{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .readout{
-  border:1px solid var(--border);border-radius:var(--r);background:var(--s2);padding:10px 12px 11px;
+  border:1px solid var(--border);border-radius:var(--r);background:var(--s2);padding:var(--sp-5) var(--sp-6) 11px;
   min-width:0;
 }
 .readout-k{
   font:500 9.5px/1 var(--font-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--text-3);
 }
 .readout-v{
-  font:600 22px/1.15 var(--font-mono);font-variant-numeric:tabular-nums;letter-spacing:-.03em;margin:6px 0 8px;
+  font:600 22px/1.15 var(--font-mono);font-variant-numeric:tabular-nums;letter-spacing:-.03em;margin:var(--sp-3) 0 var(--sp-4);
 }
-.readout-track{height:3px;border-radius:2px;background:var(--s1);overflow:hidden;border:1px solid var(--border)}
-.readout-track .fill{display:block;height:100%;width:0;transition:width .8s cubic-bezier(.22,1,.36,1)}
-.readout-h{font-size:11px;color:var(--text-3);margin-top:7px;line-height:1.35}
+.readout-track{height:3px;border-radius:var(--sp-1);background:var(--s1);overflow:hidden;border:1px solid var(--border)}
+.readout-track .fill{display:block;height:100%;width:0;transition:width var(--dur-4) var(--ease-out)}
+.readout-h{font-size:var(--fs-sm);color:var(--text-3);margin-top:7px;line-height:1.35}
 
-.cols{display:grid;grid-template-columns:1.45fr .95fr;gap:12px;align-items:start}
+.cols{display:grid;grid-template-columns:1.45fr .95fr;gap:var(--sp-6);align-items:start}
 @media (max-width:940px){.cols{grid-template-columns:1fr}}
 
-.card{border:1px solid var(--border);border-radius:var(--r-lg);background:var(--s2);padding:14px 16px}
-.card + .card{margin-top:12px}
+.card{border:1px solid var(--border);border-radius:var(--r-lg);background:var(--s2);padding:var(--sp-7) var(--sp-8)}
+.card + .card{margin-top:var(--sp-6)}
 .card h2{
-  font:500 10px/1 var(--font-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--text-3);margin:0 0 12px;
+  font:500 var(--fs-xs)/1 var(--font-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--text-3);margin:0 0 var(--sp-6);
 }
-.answer{font-size:14.5px;line-height:1.7;color:var(--text)}
+.answer{font-size:var(--fs-lg-5);line-height:1.7;color:var(--text)}
 .answer .cite{
-  font:600 10.5px var(--font-mono);color:var(--accent);background:var(--accent-dim);
-  border:1px solid rgba(77,163,255,.32);border-radius:3px;padding:0 4px;margin:0 1px;
+  font:600 var(--fs-xs-5) var(--font-mono);color:var(--accent);background:var(--accent-dim);
+  border:1px solid rgba(77,163,255,.32);border-radius:3px;padding:0 var(--sp-2);margin:0 1px;
   cursor:pointer;transition:background var(--t);
 }
 .answer .cite:hover{background:rgba(77,163,255,.24)}
 
 /* ---- trust gauge ---- */
-.gauge{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.gauge{display:flex;align-items:center;gap:var(--sp-9);flex-wrap:wrap}
 .gauge svg{flex:none}
-.gauge-ring{transition:stroke-dashoffset .9s cubic-bezier(.22,1,.36,1)}
-.gauge .legend{font-size:12px;color:var(--text-2);line-height:1.7;min-width:160px;flex:1}
-.gauge .row{display:flex;align-items:center;gap:8px}
-.gauge .swatch{width:8px;height:8px;border-radius:2px;flex:none}
-.gauge .val{font:600 12.5px var(--font-mono);font-variant-numeric:tabular-nums;color:var(--text);margin-left:auto;padding-left:12px}
+.gauge-ring{transition:stroke-dashoffset var(--dur-5) var(--ease-out)}
+.gauge .legend{font-size:var(--fs-base);color:var(--text-2);line-height:1.7;min-width:160px;flex:1}
+.gauge .row{display:flex;align-items:center;gap:var(--sp-4)}
+.gauge .swatch{width:var(--sp-4);height:var(--sp-4);border-radius:var(--sp-1);flex:none}
+.gauge .val{font:600 var(--fs-base-5) var(--font-mono);font-variant-numeric:tabular-nums;color:var(--text);margin-left:auto;padding-left:var(--sp-6)}
 .collapse-note{
-  font-size:12px;color:var(--text-2);border-left:2px solid var(--border);padding-left:10px;margin-top:10px;line-height:1.55;
+  font-size:var(--fs-base);color:var(--text-2);border-left:var(--sp-1) solid var(--border);padding-left:var(--sp-5);margin-top:var(--sp-5);line-height:1.55;
 }
 .collapse-note b{color:var(--warn);font-weight:600}
 
-.stage-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+/* ---- stage timeline (real per-stage timings, replaces the old fake chips) ---- */
+.scan-elapsed{margin-top:var(--sp-3);font:600 var(--fs-lg) var(--font-mono);font-variant-numeric:tabular-nums;color:var(--text-2)}
+.scan-typical{margin-top:var(--sp-1);font-size:var(--fs-sm);color:var(--text-3);min-height:1em}
+.timeline{margin-top:var(--sp-6)}
+.timeline-row{display:flex;align-items:stretch;gap:var(--sp-3);margin-bottom:var(--sp-3)}
+.timeline-row-label{
+  /* 44px, not 32: "LINEAR" at --fs-2xs with .1em tracking measures 38px, so a
+     32px column clipped it into the first segment (clientWidth 32 vs
+     scrollWidth 38, measured). text-align:right keeps both labels' right edges
+     against the track so the two rows stay visually aligned. */
+  flex:none;width:44px;text-align:right;padding-top:var(--sp-1);
+  font:500 var(--fs-2xs) var(--font-mono);letter-spacing:.1em;
+  text-transform:uppercase;color:var(--text-3);
+}
+.timeline-track{flex:1;display:flex;gap:2px;min-width:0}
+.timeline-seg{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  min-width:0;width:0;overflow:hidden;padding:var(--sp-2) var(--sp-1);border-radius:var(--r-sm);
+  background:var(--accent-dim);border:1px solid rgba(77,163,255,.32);
+  transition:width var(--dur-4) var(--ease-out);
+}
+.timeline-seg .seg-name{
+  font:500 var(--fs-2xs) var(--font-mono);letter-spacing:.03em;text-transform:uppercase;color:var(--text-2);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;
+}
+.timeline-seg .seg-ms,.timeline-seg .seg-unit{font:600 var(--fs-2xs) var(--font-mono);color:var(--text);white-space:nowrap}
+.timeline-seg.not-run{
+  flex:0 0 54px;width:auto;background:transparent;border:1px dashed var(--border-2);color:var(--text-3);
+}
+.timeline-seg.not-run .seg-name{color:var(--text-3)}
+.timeline-seg.not-run .seg-notrun{font:500 var(--fs-2xs) var(--font-mono);font-style:italic;color:var(--text-3)}
+.timeline-caption{margin-top:var(--sp-4);font-size:var(--fs-sm);color:var(--text-2);line-height:1.5}
+.timeline-caption b{color:var(--text);font-weight:600}
 
 /* ---- tables / passages ---- */
-table{width:100%;border-collapse:collapse;font-size:12.5px}
+table{width:100%;border-collapse:collapse;font-size:var(--fs-base-5)}
 th{
-  text-align:left;font:500 10px/1 var(--font-mono);letter-spacing:.1em;text-transform:uppercase;
-  color:var(--text-3);padding:0 8px 8px;border-bottom:1px solid var(--border);
+  text-align:left;font:500 var(--fs-xs)/1 var(--font-mono);letter-spacing:.1em;text-transform:uppercase;
+  color:var(--text-3);padding:0 var(--sp-4) var(--sp-4);border-bottom:1px solid var(--border);
 }
-td{padding:9px 8px;border-bottom:1px solid rgba(35,40,48,.75);vertical-align:top;color:var(--text-2)}
-td.n{text-align:right;font:600 12.5px var(--font-mono);font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--text)}
+td{padding:9px var(--sp-4);border-bottom:1px solid rgba(35,40,48,.75);vertical-align:top;color:var(--text-2)}
+td.n{text-align:right;font:600 var(--fs-base-5) var(--font-mono);font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--text)}
 tr:last-child td{border-bottom:0}
 .tblwrap{overflow-x:auto}
-.hint{font-size:11px;color:var(--text-3)}
+.hint{font-size:var(--fs-sm);color:var(--text-3)}
 .na{color:var(--text-3);font-style:italic}
 
-.psg{border-left:2px solid var(--border);padding:2px 0 2px 12px;margin:10px 0;font-size:12.5px;color:var(--text-2);transition:border-color .3s}
-.psg .meta{font:11px var(--font-mono);color:var(--text-3);margin-bottom:3px;transition:color .3s}
+.psg{border-left:var(--sp-1) solid var(--border);padding:var(--sp-1) 0 var(--sp-1) var(--sp-6);margin:var(--sp-5) 0;font-size:var(--fs-base-5);color:var(--text-2);transition:border-color var(--dur-2)}
+.psg .meta{font:var(--fs-sm) var(--font-mono);color:var(--text-3);margin-bottom:3px;transition:color var(--dur-2)}
 .psg.hit{border-left-color:var(--accent)}
 .psg.hit .meta{color:var(--accent)}
 
@@ -371,10 +435,11 @@ tr:last-child td{border-bottom:0}
   .readout-track .fill{transition:none}
   .gauge-ring{transition:none}
   .skip-link{transition:none}
+  .timeline-seg{transition:none}
 }
 
 /* ============ footer ============ */
-.site-footer{max-width:1180px;margin:0 auto;padding:0 20px 40px;color:var(--text-3);font-size:12px;display:flex;gap:16px;flex-wrap:wrap;position:relative;z-index:1}
+.site-footer{max-width:1180px;margin:0 auto;padding:0 var(--sp-10) 40px;color:var(--text-3);font-size:var(--fs-base);display:flex;gap:var(--sp-8);flex-wrap:wrap;position:relative;z-index:1}
 .site-footer a{color:var(--text-2);text-decoration:none;border-bottom:1px solid var(--border);transition:color var(--t),border-color var(--t)}
 .site-footer a:hover{color:var(--accent);border-color:var(--accent)}
 </style>
@@ -424,8 +489,8 @@ tr:last-child td{border-bottom:0}
         <circle cx="160" cy="160" r="118" stroke="rgba(77,163,255,.32)" stroke-width="1.15" stroke-dasharray="2 9"/>
         <circle cx="160" cy="160" r="88" stroke="rgba(62,224,192,.42)" stroke-width="1.5"/>
         <circle cx="160" cy="160" r="58" stroke="rgba(77,163,255,.2)" stroke-width="1.1"/>
-        <path d="M160 18 A142 142 0 0 1 286 112" stroke="#4da3ff" stroke-width="2.4" stroke-linecap="round"/>
-        <path d="M160 42 A118 118 0 0 1 262 102" stroke="#3ee0c0" stroke-width="1.6" stroke-linecap="round" opacity=".75"/>
+        <path d="M160 18 A142 142 0 0 1 286 112" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M160 42 A118 118 0 0 1 262 102" stroke="var(--signal)" stroke-width="1.6" stroke-linecap="round" opacity=".75"/>
         <g stroke="#5d7388" stroke-width="1.2" stroke-linecap="round">
           <path d="M160 12v10"/><path d="M160 298v10"/>
           <path d="M12 160h10"/><path d="M298 160h10"/>
@@ -493,6 +558,8 @@ tr:last-child td{border-bottom:0}
       <span class="step">score</span>
     </div>
     <div class="trace"><i></i></div>
+    <div class="scan-elapsed" id="scanElapsed">0.0s</div>
+    <div class="scan-typical" id="scanTypical"></div>
   </section>
 
   <section class="stage" id="stage"></section>
@@ -555,11 +622,76 @@ const fmtMs = x => (x === null || x === undefined || Number.isNaN(Number(x))) ? 
 const fmtPct = x => (x === null || x === undefined || Number.isNaN(Number(x))) ? "—" : Math.round(Number(x) * 100) + "%";
 const fmtTrust = x => (x === null || x === undefined || Number.isNaN(Number(x))) ? "—" : Number(x).toFixed(3);
 
-function stageChipsHtml(stages){
-  const inner = (Array.isArray(stages) && stages.length)
-    ? stages.map(s => `<span class="chip">${esc(s.stage)} <b class="mono">${fmtMs(s.ms)}</b></span>`).join("")
-    : "";
-  return `<div class="stage-chips" id="runStages">${inner}</div>`;
+// Renders the REAL per-stage timings from stage_timings, not the old fake
+// six-chip marquee. Two bars on purpose: linear shows the true proportion
+// (entail dwarfs everything, generate is sub-pixel -- that ratio IS the
+// finding) and log keeps the fast stages visible at all. A stage missing
+// from the array did not run (the pipeline returns early at the gate for an
+// abstention) -- that is a different fact from "ran in 0ms" and must never
+// be drawn as a zero-width or red segment, the same rule this page already
+// applies to null metrics elsewhere.
+function stageTimelineHtml(stages){
+  const list = Array.isArray(stages) ? stages : [];
+  const byMs = {};
+  list.forEach(s => { byMs[s.stage] = Number(s.ms) || 0; });
+  const ranStages = STAGE_ORDER.filter(k => Object.prototype.hasOwnProperty.call(byMs, k));
+
+  if (!ranStages.length){
+    return `<div class="timeline"><p class="hint" style="margin:12px 0 0">No stage timings recorded for this run.</p></div>`;
+  }
+
+  const total = ranStages.reduce((sum, k) => sum + byMs[k], 0) || 1;
+  const logs = {};
+  let logTotal = 0;
+  ranStages.forEach(k => { const l = Math.log10(byMs[k] + 1); logs[k] = l; logTotal += l; });
+  logTotal = logTotal || 1;
+
+  const notRunSeg = k => `<span class="timeline-seg not-run" data-stage="${esc(k)}" title="${esc(k)}: not run">
+      <b class="seg-name">${esc(k)}</b><span class="seg-notrun">not run</span>
+    </span>`;
+  // Below ~6% width there is no room to set type without it spilling into the
+  // neighbouring segment -- that is exactly what the tiny linear-bar slivers
+  // (the whole point of this view) look like. Hide the label rather than
+  // render soup; the exact figure is still on hover (title) and in the
+  // caption below, and the log row shows the same stage wide enough to read.
+  const LABEL_MIN_W = 6;
+  const runSeg = (k, w) => {
+    const title = `${esc(k)}: ${byMs[k]}ms`;
+    const inner = w >= LABEL_MIN_W
+      ? `<b class="seg-name">${esc(k)}</b><b class="seg-ms mono" data-target-ms="${byMs[k]}">0</b><span class="seg-unit">ms</span>`
+      : "";
+    return `<span class="timeline-seg" data-w="${w.toFixed(2)}" data-stage="${esc(k)}" title="${title}">${inner}</span>`;
+  };
+  const row = mode => STAGE_ORDER.map(k => {
+    if (!(k in byMs)) return notRunSeg(k);
+    const w = mode === "log" ? (logs[k] / logTotal * 100) : (byMs[k] / total * 100);
+    return runSeg(k, w);
+  }).join("");
+
+  // The caption is computed from the array every time, never hand-written --
+  // whichever stage is slowest/fastest on THIS run is what gets named.
+  const fmtDuration = ms => ms >= 1000 ? (ms / 1000).toFixed(1) + "s" : Math.round(ms) + "ms";
+  const pctLabel = p => p < 1 ? (Math.round(p * 100) / 100) + "%" : Math.round(p) + "%";
+  let maxK = ranStages[0], minK = ranStages[0];
+  ranStages.forEach(k => {
+    if (byMs[k] > byMs[maxK]) maxK = k;
+    if (byMs[k] < byMs[minK]) minK = k;
+  });
+  const full = ranStages.includes("entail") && ranStages.includes("generate");
+  let caption;
+  if (ranStages.length > 1){
+    caption = `<b>${esc(maxK)}</b> ${fmtDuration(byMs[maxK])} — ${pctLabel(byMs[maxK] / total * 100)} of total ·
+      <b>${esc(minK)}</b> ${fmtDuration(byMs[minK])} — ${pctLabel(byMs[minK] / total * 100)} of total.`;
+  } else {
+    caption = `<b>${esc(maxK)}</b> ${fmtDuration(byMs[maxK])} — the only stage this run reached.`;
+  }
+  if (full) caption += " The expensive part is verification, not generation.";
+
+  return `<div class="timeline">
+    <div class="timeline-row"><span class="timeline-row-label">linear</span><div class="timeline-track">${row("linear")}</div></div>
+    <div class="timeline-row"><span class="timeline-row-label">log</span><div class="timeline-track">${row("log")}</div></div>
+    <p class="timeline-caption">${caption}</p>
+  </div>`;
 }
 
 function readoutCell(label, value, hint, key){
@@ -612,7 +744,7 @@ function gaugeTicks(){
   const th = 0.5 * Math.PI * 2 - Math.PI / 2;
   d += `<line x1="${cx + Math.cos(th)*56}" y1="${cy + Math.sin(th)*56}"
               x2="${cx + Math.cos(th)*65}" y2="${cy + Math.sin(th)*65}"
-              stroke="#e8b44c" stroke-width="1.6" stroke-linecap="round"/>`;
+              stroke="var(--warn)" stroke-width="1.6" stroke-linecap="round"/>`;
   return d;
 }
 
@@ -627,25 +759,25 @@ function gauge(arith, geom){
   <div class="gauge">
     <svg width="132" height="132" viewBox="0 0 132 132" role="img"
          aria-label="Trust: geometric ${f3(geom) ?? "unavailable"}, arithmetic ${f3(arith) ?? "unavailable"}">
-      <circle cx="66" cy="66" r="${R}" fill="none" stroke="#0c0e12" stroke-width="${SW}"/>
+      <circle cx="66" cy="66" r="${R}" fill="none" stroke="var(--s1)" stroke-width="${SW}"/>
       <circle class="gauge-ring" cx="66" cy="66" r="${R}" fill="none" stroke="#3d4f63" stroke-width="${SW}"
               stroke-linecap="round" stroke-dasharray="${C} ${C}" stroke-dashoffset="${C}" data-off="${offA}"
               transform="rotate(-90 66 66)"/>
-      <circle cx="66" cy="66" r="${R2}" fill="none" stroke="#0c0e12" stroke-width="${SW}"/>
+      <circle cx="66" cy="66" r="${R2}" fill="none" stroke="var(--s1)" stroke-width="${SW}"/>
       <circle class="gauge-ring" cx="66" cy="66" r="${R2}" fill="none" stroke="${tone('t', geom)}" stroke-width="${SW}"
               stroke-linecap="round" stroke-dasharray="${C2} ${C2}" stroke-dashoffset="${C2}" data-off="${offG}"
               transform="rotate(-90 66 66)"/>
       ${gaugeTicks()}
-      <text x="66" y="62" text-anchor="middle" fill="#eef1f4" style="font:600 22px var(--font-mono)"
+      <text x="66" y="62" text-anchor="middle" fill="var(--text)" style="font:600 22px var(--font-mono)"
             data-target="${haveG ? geom : ""}">${haveG ? "0.000" : "—"}</text>
-      <text x="66" y="78" text-anchor="middle" fill="#7a8490" style="font:500 9px var(--font-mono);letter-spacing:.16em">TRUST</text>
+      <text x="66" y="78" text-anchor="middle" fill="var(--text-3)" style="font:500 9px var(--font-mono);letter-spacing:.16em">TRUST</text>
     </svg>
     <div class="legend">
       <div class="row"><span class="swatch" style="background:${tone('t',geom)}"></span>
         Geometric <span class="val" data-target="${haveG ? geom : ""}">${haveG ? "0.000" : "—"}</span></div>
       <div class="row"><span class="swatch" style="background:#3d4f63"></span>
         Arithmetic <span class="val" data-target="${haveA ? arith : ""}">${haveA ? "0.000" : "—"}</span></div>
-      <div class="row"><span class="swatch" style="background:#e8b44c"></span>
+      <div class="row"><span class="swatch" style="background:var(--warn)"></span>
         Threshold <span class="val">0.500</span></div>
       <div class="collapse-note">${gap > 0.04
         ? `The geometric score sits <b>${gap.toFixed(3)} lower</b>. It is non-compensatory — one weak dimension pulls it down, where the arithmetic mean lets the others mask it.`
@@ -661,21 +793,50 @@ const workspace = document.querySelector(".workspace");
 function setWorking(on){
   workspace.classList.toggle("is-working", !!on);
 }
+
+// Real per-stage timings only exist once the response comes back, so the
+// in-flight state must not pretend to know which stage is "active" -- the
+// old version marched a 620ms timer that finished early on fast runs and
+// sat parked on slow ones. All this shows now is that work is happening
+// (steps dim/pending, the trace bar sweeping) plus an honest elapsed clock,
+// calibrated against this deployment's own recent traffic so "is this
+// normal" has an answer before the run even finishes.
+const fmtElapsed = ms => (ms / 1000).toFixed(1) + "s";
+let cachedScanStats = null;
+function fetchScanStats(){
+  if (cachedScanStats) return Promise.resolve(cachedScanStats);
+  return fetch("/traces?limit=50").then(r => r.json())
+    .then(d => {
+      const stats = d && d.stats;
+      if (stats && stats.p50_ms != null && stats.p95_ms != null){
+        cachedScanStats = stats;
+        return stats;
+      }
+      return null; // not cached -- retry on the next run rather than lock in "no data"
+    })
+    .catch(() => null);
+}
+
 function startScan(){
   setWorking(true);
-  const steps = [...document.querySelectorAll("#scan .step")];
-  steps.forEach(s => s.className = "step");
+  $$(".step", $("#scan")).forEach(s => s.className = "step");
   $("#scan").classList.add("show");
   $("#stage").classList.remove("show");
-  let i = 0;
-  (function tick(){
-    if (i > 0) steps[i-1].className = "step done";
-    if (i < steps.length) steps[i].className = "step active";
-    i++;
-    if (i <= steps.length) scanTimer = setTimeout(tick, 620);
-  })();
+
+  const start = performance.now();
+  $("#scanElapsed").textContent = "0.0s";
+  clearInterval(scanTimer);
+  scanTimer = setInterval(() => {
+    $("#scanElapsed").textContent = fmtElapsed(performance.now() - start);
+  }, 100);
+
+  $("#scanTypical").textContent = "";
+  fetchScanStats().then(stats => {
+    if (stats) $("#scanTypical").textContent = `typical ${fmtElapsed(stats.p50_ms)} · p95 ${fmtElapsed(stats.p95_ms)}`;
+    // else: leave blank. No measurement yet is not a guess of "fast" or "slow".
+  });
 }
-const stopScan = () => { clearTimeout(scanTimer); $("#scan").classList.remove("show"); };
+const stopScan = () => { clearInterval(scanTimer); $("#scan").classList.remove("show"); };
 
 function render(d){
   setWorking(true);
@@ -694,7 +855,7 @@ function render(d){
     <p style="margin:0;color:var(--text-2);font-size:13px;line-height:1.65">
     The retrieval gate fires <em>before</em> generation, so a question the corpus cannot answer costs
     nothing to refuse. Declining is a first-class result here — a system that always answers has no
-    way to tell you when it should not have.</p>${stageChipsHtml(d.stage_timings)}</div>`;
+    way to tell you when it should not have.</p>${stageTimelineHtml(d.stage_timings)}</div>`;
   } else {
     const ok = d.is_trustworthy;
     const g = t.geometric;
@@ -735,7 +896,7 @@ function render(d){
         </div></div>`;
     }
     h += `</div><div>
-      <div class="card"><h2>Trust instrument</h2>${gauge(t.arithmetic, t.geometric)}${stageChipsHtml(d.stage_timings)}</div>
+      <div class="card"><h2>Trust instrument</h2>${gauge(t.arithmetic, t.geometric)}${stageTimelineHtml(d.stage_timings)}</div>
       </div></div>`;
   }
 
@@ -766,11 +927,15 @@ function render(d){
   // one waiting for the first .fill without one.
   requestAnimationFrame(() => {
     $$(".fill", stage).forEach(el => { el.style.width = el.dataset.w + "%"; });
+    $$(".timeline-seg[data-w]", stage).forEach(el => { el.style.width = el.dataset.w + "%"; });
     $$(".gauge-ring", stage).forEach(el => { el.style.strokeDashoffset = el.dataset.off; });
     $$("[data-target]", stage).forEach(el => {
       const raw = el.dataset.target;
       if (raw === "" || raw === undefined) return;
       animateNumber(el, Number(raw), 3);
+    });
+    $$(".seg-ms[data-target-ms]", stage).forEach(el => {
+      animateNumber(el, Number(el.dataset.targetMs), 0);
     });
   });
   const jump = c => {
