@@ -512,6 +512,12 @@ tr:last-child td{border-bottom:0}
 
 <script>
 const $ = s => document.querySelector(s);
+// Always takes a root. Several regions of this page animate independently -- the
+// upload scanner, the request scanner, the results stage, the Evaluation panel --
+// and they share class names (.step, .fill, .cite). A document-wide query
+// therefore reaches into siblings that merely look the same, which is precisely
+// the bug this helper exists to make hard to write: the root is not optional.
+const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const f3 = x => (x === null || x === undefined || Number.isNaN(x)) ? null : Number(x).toFixed(3);
 
@@ -534,7 +540,14 @@ function animateNumber(el, target, decimals){
   })(start);
 }
 
-const tone = (k,v) => k === "contradiction_rate"
+// Null is not a low score. Without the first branch, `null >= .7` and
+// `null >= .4` are both false, so a value that could not be computed rendered in
+// exactly the same red as one measured to be terrible -- the most damaging
+// possible mislabel on a page whose subject is honest measurement. The two
+// existing polarities below are unchanged, contradiction_rate still inverted.
+const tone = (k,v) => (v === null || v === undefined || Number.isNaN(v))
+  ? "var(--border-2)"
+  : k === "contradiction_rate"
   ? (v > .5 ? "var(--bad)" : v > .25 ? "var(--warn)" : "var(--ok)")
   : (v >= .7 ? "var(--ok)" : v >= .4 ? "var(--warn)" : "var(--bad)");
 
@@ -743,12 +756,18 @@ function render(d){
       `</div>`;
   }
 
-  $("#stage").innerHTML = h;
-  $("#stage").classList.add("show");
+  const stage = $("#stage");
+  stage.innerHTML = h;
+  stage.classList.add("show");
+  // Scoped to `stage`. The Evaluation panel's latency bars also carry
+  // .fill/data-w, so a document-wide query re-ran their width animation on
+  // every answer -- currently idempotent, but only because those bars happen to
+  // have a data-w. Scoping keeps that an accident that cannot bite rather than
+  // one waiting for the first .fill without one.
   requestAnimationFrame(() => {
-    document.querySelectorAll(".fill").forEach(el => { el.style.width = el.dataset.w + "%"; });
-    document.querySelectorAll(".gauge-ring").forEach(el => { el.style.strokeDashoffset = el.dataset.off; });
-    document.querySelectorAll("[data-target]").forEach(el => {
+    $$(".fill", stage).forEach(el => { el.style.width = el.dataset.w + "%"; });
+    $$(".gauge-ring", stage).forEach(el => { el.style.strokeDashoffset = el.dataset.off; });
+    $$("[data-target]", stage).forEach(el => {
       const raw = el.dataset.target;
       if (raw === "" || raw === undefined) return;
       animateNumber(el, Number(raw), 3);
@@ -756,10 +775,13 @@ function render(d){
   });
   const jump = c => {
     const el = document.getElementById("p" + c.dataset.p);
-    if (el){ el.scrollIntoView({behavior:"smooth",block:"center"}); el.classList.add("hit");
+    // scrollIntoView ignores CSS, so the @media (prefers-reduced-motion) block
+    // does not reach it -- this was the one path still animating for people who
+    // asked it not to.
+    if (el){ el.scrollIntoView({behavior: reduceMotion ? "auto" : "smooth", block:"center"}); el.classList.add("hit");
              setTimeout(() => el.classList.remove("hit"), 2200); }
   };
-  document.querySelectorAll(".cite").forEach(c => {
+  $$(".cite", stage).forEach(c => {
     c.onclick = () => jump(c);
     c.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); jump(c); } };
   });
