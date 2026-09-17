@@ -13,31 +13,50 @@ _FAISS_THREADS_SET = False
 
 
 def import_faiss():
-    """Import faiss with its OpenMP thread pool capped, and return the module.
+    """Import faiss and return the module -- the one place this package does so.
 
     torch, sklearn and faiss each vendor their own copy of libomp. With more
     than one loaded into a process, FAISS's OpenMP parallel regions can
     segfault -- SIGSEGV with no Python traceback, because the crash happens in
     a native thread that has no Python frames to print. It is size-dependent,
     since FAISS only spawns those threads once an index is large enough:
-    reproducible at 22,878 vectors while absent at 5,183.
+    reproducible at 22,878 vectors while absent at 5,183. `POST /corpora`
+    indexes an arbitrary uploaded document, so a large enough upload can take
+    the whole service down.
 
-    This matters beyond the benchmarks. `POST /corpora` indexes an arbitrary
-    uploaded document, so without the cap a large enough upload can take the
-    whole service down -- not as a handled error, as an instant process death.
+    **Cap the threads with the OMP_NUM_THREADS environment variable**, not from
+    here. Setting it before the process starts prevents the segfault -- the
+    chunked benchmark runs clean under `OMP_NUM_THREADS=1` -- without any of
+    the damage described below. deploy/.env.example sets it.
 
-    The cost is small: every index here is an `IndexFlat*`, whose add and
-    search are brute-force and bound by memory bandwidth rather than by thread
-    count, and the deployed box has 2 vCPUs. Set RAGTRUST_FAISS_THREADS to
-    profile a different value.
+    Calling `faiss.omp_set_num_threads()` is deliberately NOT the default,
+    because it is worse than the problem it solves. That call is what forces
+    faiss's libomp to *initialise*; importing faiss alone does not. Once it
+    has, the next library to bring up its own copy hits the runtime's
+    duplicate check and the process dies with `OMP: Error #15` and SIGABRT.
+    Measured on macOS, `create_app()` aborting at startup in both orders:
+
+        import torch; faiss.omp_set_num_threads(1)   -> exit 134
+        faiss.omp_set_num_threads(1); import torch   -> exit 134
+        import torch, sklearn; import_faiss()        -> exit 0
+
+    The third line survives only because scikit-learn smooths over duplicate
+    OpenMP runtimes as a side effect of being imported -- so whether the call
+    aborts depends on which unrelated library happened to load first. Trading a
+    load-dependent segfault for an import-order-dependent startup abort is not
+    a fix. Linux does not trip the check, which is exactly how this reached the
+    deployed service before being caught locally.
+
+    RAGTRUST_FAISS_THREADS still forces the call, for profiling on a platform
+    where it is known safe. Unset, faiss keeps whatever OMP_NUM_THREADS gave it.
     """
     global _FAISS_THREADS_SET
     import faiss
 
-    if not _FAISS_THREADS_SET:
+    requested = os.environ.get("RAGTRUST_FAISS_THREADS", "")
+    if requested and not _FAISS_THREADS_SET:
         try:
-            faiss.omp_set_num_threads(
-                int(os.environ.get("RAGTRUST_FAISS_THREADS", "1")))
+            faiss.omp_set_num_threads(int(requested))
         except (AttributeError, ValueError):
             # A faiss built without OpenMP exposes no omp_set_num_threads, and a
             # malformed env value must not stop the service from starting. In

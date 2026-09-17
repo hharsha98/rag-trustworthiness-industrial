@@ -37,18 +37,26 @@ def test_normalized_retriever_ranking_matches_cosine_ordering():
         assert p.score == pytest.approx(expected_cos, abs=1e-5)
 
 
-# --- FAISS thread cap -------------------------------------------------------
+# --- FAISS import choke point -----------------------------------------------
 #
 # torch, sklearn and faiss each vendor their own libomp, and with more than one
 # in a process FAISS's OpenMP regions segfault once an index is large enough for
-# it to spawn threads -- observed at 22,878 vectors, absent at 5,183. The crash
-# is a SIGSEGV in a native thread, so there is no exception to assert on and no
-# traceback to read; these tests pin the guard itself instead.
+# it to spawn threads -- observed at 22,878 vectors, absent at 5,183. That crash
+# is a SIGSEGV in a native thread: no exception to assert on, no traceback.
+#
+# The fix is the OMP_NUM_THREADS environment variable, which cannot be exercised
+# from inside a running interpreter (it is read when the OpenMP runtime loads).
+# What IS testable is that import_faiss does NOT call omp_set_num_threads on its
+# own -- because that call forces faiss's libomp to initialise, and whichever
+# library brings up its copy second then dies with `OMP: Error #15` and SIGABRT.
+# Measured: `create_app()` aborted at startup in both import orders, surviving
+# only when scikit-learn happened to be imported first. These tests pin the
+# absence of that call, which is the actual safety property.
 
 
 @pytest.fixture
 def uncapped_faiss(monkeypatch):
-    """Reset the once-only cap flag and record omp_set_num_threads calls."""
+    """Reset the once-only flag and record any omp_set_num_threads calls."""
     faiss = pytest.importorskip("faiss")
     calls: list = []
     monkeypatch.setattr(faiss, "omp_set_num_threads", calls.append, raising=False)
@@ -57,25 +65,33 @@ def uncapped_faiss(monkeypatch):
     return faiss, calls
 
 
-def test_import_faiss_caps_threads_to_one_by_default(uncapped_faiss):
+def test_import_faiss_does_not_touch_openmp_by_default(uncapped_faiss):
+    """The regression guard. Calling omp_set_num_threads here aborted startup.
+
+    An earlier revision capped threads unconditionally from this function and
+    broke `create_app()` on macOS with SIGABRT -- a 100% failure, strictly worse
+    than the size-dependent segfault it was meant to prevent.
+    """
     faiss, calls = uncapped_faiss
     assert import_faiss() is faiss
-    assert calls == [1]
+    assert calls == [], "forcing faiss's libomp up early is what causes OMP Error #15"
 
 
-def test_import_faiss_honours_thread_override(uncapped_faiss, monkeypatch):
+def test_import_faiss_forces_the_cap_only_when_explicitly_asked(uncapped_faiss, monkeypatch):
+    """Opt-in escape hatch, for profiling on a platform where it is known safe."""
     _, calls = uncapped_faiss
     monkeypatch.setenv("RAGTRUST_FAISS_THREADS", "4")
     import_faiss()
     assert calls == [4]
 
 
-def test_import_faiss_caps_once_not_per_call(uncapped_faiss):
+def test_import_faiss_applies_an_explicit_cap_once_not_per_call(uncapped_faiss, monkeypatch):
     _, calls = uncapped_faiss
+    monkeypatch.setenv("RAGTRUST_FAISS_THREADS", "1")
     import_faiss()
     import_faiss()
     import_faiss()
-    assert calls == [1], "the cap is global to the process; re-applying it per call is waste"
+    assert calls == [1], "the setting is global to the process; re-applying it per call is waste"
 
 
 def test_import_faiss_survives_a_build_without_openmp(uncapped_faiss, monkeypatch):
@@ -85,6 +101,7 @@ def test_import_faiss_survives_a_build_without_openmp(uncapped_faiss, monkeypatc
     carry on -- an AttributeError here would stop the service from starting.
     """
     faiss, _ = uncapped_faiss
+    monkeypatch.setenv("RAGTRUST_FAISS_THREADS", "1")
     monkeypatch.delattr(faiss, "omp_set_num_threads", raising=False)
     assert import_faiss() is faiss
 
@@ -92,8 +109,8 @@ def test_import_faiss_survives_a_build_without_openmp(uncapped_faiss, monkeypatc
 def test_import_faiss_survives_an_unparseable_override(uncapped_faiss, monkeypatch):
     """A typo in the env var must not take the service down with it.
 
-    The cap is a safety guard; failing closed on a malformed value would turn a
-    harmless misconfiguration into an outage.
+    Failing closed on a malformed value would turn a harmless misconfiguration
+    into an outage.
     """
     faiss, calls = uncapped_faiss
     monkeypatch.setenv("RAGTRUST_FAISS_THREADS", "two")
