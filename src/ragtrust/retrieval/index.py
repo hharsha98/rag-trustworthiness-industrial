@@ -24,10 +24,17 @@ def import_faiss():
     indexes an arbitrary uploaded document, so a large enough upload can take
     the whole service down.
 
-    **Cap the threads with the OMP_NUM_THREADS environment variable**, not from
-    here. Setting it before the process starts prevents the segfault -- the
-    chunked benchmark runs clean under `OMP_NUM_THREADS=1` -- without any of
-    the damage described below. deploy/.env.example sets it.
+    **Cap it with RAGTRUST_FAISS_THREADS**, which deploy/.env.example sets to 1.
+
+    An earlier revision of this docstring said to use OMP_NUM_THREADS instead.
+    That was wrong in production, and the correction is worth keeping:
+    OMP_NUM_THREADS caps *every* OpenMP consumer in the process, PyTorch
+    included, and PyTorch runs the NLI entailment that dominates this pipeline
+    -- entail plus score were 79s of a 99s answer on the deployed host. Setting
+    it throttled the whole service to one core, on a machine with 8 of them, to
+    protect an index operation that was never the bottleneck. Startup alone went
+    85s -> 40s on removing it. It does prevent the segfault; it just costs far
+    more than it saves.
 
     Calling `faiss.omp_set_num_threads()` is deliberately NOT the default,
     because it is worse than the problem it solves. That call is what forces
@@ -47,8 +54,11 @@ def import_faiss():
     a fix. Linux does not trip the check, which is exactly how this reached the
     deployed service before being caught locally.
 
-    RAGTRUST_FAISS_THREADS still forces the call, for profiling on a platform
-    where it is known safe. Unset, faiss keeps whatever OMP_NUM_THREADS gave it.
+    So the call stays opt-in: RAGTRUST_FAISS_THREADS forces it, on a platform
+    where it is known safe. The deployed host is Linux and sets it; macOS
+    development leaves it unset and keeps faiss's own default, where the
+    segfault needs an index above ~22k vectors to appear and the benchmarks that
+    build one pass OMP_NUM_THREADS=1 on the command line for that single run.
     """
     global _FAISS_THREADS_SET
     import faiss

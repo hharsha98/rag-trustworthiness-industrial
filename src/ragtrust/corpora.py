@@ -62,9 +62,11 @@ class CorpusStore:
             else int(os.environ.get("RAGTRUST_CORPUS_CACHE", "4"))
         )
         # Embedding every chunk of an upload is the CPU-bound step of `create`,
-        # and the target VPS has 2 vCPUs -- letting two uploads embed at once
-        # would just make both slower rather than either faster. A semaphore
-        # of 1 makes concurrent uploads queue instead of compete for the CPU.
+        # and it competes with the NLI work that dominates every in-flight
+        # /answer (entail plus score were 79s of a 99s answer in production).
+        # Letting two uploads embed at once would make both slower and starve
+        # whoever is waiting on an answer. A semaphore of 1 makes concurrent
+        # uploads queue instead of compete for the CPU.
         self._index_semaphore = threading.Semaphore(1)
         # uvicorn runs sync route handlers in a threadpool, so cache access is
         # genuinely concurrent -- this lock protects the LRU's read-modify-write

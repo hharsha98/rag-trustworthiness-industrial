@@ -44,8 +44,10 @@ def test_normalized_retriever_ranking_matches_cosine_ordering():
 # it to spawn threads -- observed at 22,878 vectors, absent at 5,183. That crash
 # is a SIGSEGV in a native thread: no exception to assert on, no traceback.
 #
-# The fix is the OMP_NUM_THREADS environment variable, which cannot be exercised
-# from inside a running interpreter (it is read when the OpenMP runtime loads).
+# The deployed fix is RAGTRUST_FAISS_THREADS, set in deploy/.env.example, which
+# caps faiss alone. OMP_NUM_THREADS was tried first and withdrawn: it caps every
+# OpenMP consumer including PyTorch, which runs the NLI that dominates this
+# pipeline, and throttled production to one core on an 8-core host.
 # What IS testable is that import_faiss does NOT call omp_set_num_threads on its
 # own -- because that call forces faiss's libomp to initialise, and whichever
 # library brings up its copy second then dies with `OMP: Error #15` and SIGABRT.

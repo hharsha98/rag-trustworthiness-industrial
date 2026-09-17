@@ -186,8 +186,9 @@ def create_app(index_dir: str, config: Config = None, generator: Any = None) -> 
 
     # --- /answer abuse protection. The service is about to be exposed publicly
     # with no authentication, and POST /answer both calls a paid, hosted LLM
-    # backend and spends ~14s of CPU on NLI entailment per request on this
-    # 2-vCPU box -- see ratelimit.py's module docstring for the full picture.
+    # backend and spends the better part of a minute of CPU on NLI per request
+    # -- entail plus score were 79s of a 99s answer measured in production,
+    # against 19s for the generation call. See ratelimit.py's module docstring.
     # Read once at app-creation time (not per-request), same rationale as the
     # upload rate-limit envs above: a single process's policy stays stable for
     # its lifetime; tests that need a different policy build a fresh app

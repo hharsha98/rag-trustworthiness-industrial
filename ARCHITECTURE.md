@@ -159,7 +159,7 @@ self-hosted open-weight models via Ollama, no data leaving the machine, which is
 requirement in an industrial deployment setting.
 
 The hosted demo defaults to `DeBERTa-v3-base-mnli-fever-anli` (~370 MB) rather than
-`roberta-large-mnli` (~1.4 GB): it is faster on 2 vCPUs and stronger on MNLI.
+`roberta-large-mnli` (~1.4 GB): it is faster on a CPU-only host and stronger on MNLI.
 `roberta-large-mnli` remains selectable as an alternative NLI backbone.
 
 ## Module map

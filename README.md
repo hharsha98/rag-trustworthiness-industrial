@@ -18,10 +18,12 @@ drop in your own PDF or Markdown file and interrogate that instead.
 **[→ Read the walkthrough](https://hharsha98.github.io/rag-trustworthiness-industrial/)** if
 you would rather see it explained than click through it.
 
-<sub>The live instance is a 2-vCPU VPS running open-weight models, so an answer takes a few
-seconds — most of it NLI entailment rather than generation, which the per-stage timings on the
-page will show you. Uploads and questions are both rate limited, and uploaded documents are
-deleted after 24 hours.</sub>
+<sub>The live instance runs open-weight models on a modest VPS, and it is slow for a reason worth
+seeing: **a full answer takes around a minute**, because checking an answer costs far more than
+writing one. On a recent production run, generation took 19s while entailment and attribution
+together took 79s — the per-stage timeline on the page shows that split from real measurements. A
+refusal comes back in seconds, because the gate fires before any of it is spent. Uploads and
+questions are both rate limited, and uploaded documents are deleted after 24 hours.</sub>
 
 ---
 
