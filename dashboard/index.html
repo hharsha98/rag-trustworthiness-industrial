@@ -420,6 +420,17 @@ a{color:inherit}
 .timeline-caption{margin-top:var(--sp-4);font-size:var(--fs-sm);color:var(--text-2);line-height:1.5}
 .timeline-caption b{color:var(--text);font-weight:600}
 
+/* ---- auto-demo replay badge (see the script's addDemoNotice()) ---- */
+.demo-notice{margin-bottom:var(--sp-6)}
+.demo-badge{
+  display:inline-flex;align-items:center;gap:var(--sp-3);font:600 var(--fs-sm) var(--font-mono);
+  letter-spacing:.04em;color:var(--accent);background:var(--accent-dim);
+  border:1px solid rgba(77,163,255,.35);border-radius:999px;padding:var(--sp-3) var(--sp-6);
+  text-decoration:none;transition:background var(--t),border-color var(--t);
+}
+.demo-badge:hover{background:rgba(77,163,255,.2);border-color:var(--accent)}
+.demo-compression{margin:var(--sp-4) 0 0;font-size:var(--fs-sm);color:var(--text-3);font-style:italic}
+
 /* ---- tables / passages ---- */
 table{width:100%;border-collapse:collapse;font-size:var(--fs-base-5)}
 th{
@@ -1126,6 +1137,210 @@ fetch("/config").then(r => r.json())
   .then(c => { scoreLabel = SCORE_LABELS[c.retrieval_mode] || "score"; })
   .catch(() => {});
 
+// ============ auto-demo replay ============
+// Plays dashboard/demo-run.json (a real, committed /answer response) through
+// the SAME render() used for a live answer, so a first-time visitor sees a
+// genuine measurement in seconds instead of the ~60s a live one actually
+// takes. See dashboard/README.md for why the fixture exists and the rules it
+// is captured under. Every failure mode below (fetch error, bad JSON, no
+// `response`, no stage timings) must leave today's idle page untouched --
+// there is no fallback UI of its own here, only silence.
+const DEMO_FIXTURE_URL = "/demo-run.json";
+// Tuned against demo-run.json's own stage_timings: at k=0.08 the three
+// sub-millisecond-to-low-hundreds stages (retrieve/gate/decompose) all sit on
+// the 220ms floor (so a 1ms stage is still perceptible) while generate clips
+// the 1400ms ceiling and entail/score land in between -- total dwell ~4.5s
+// for a run that really took 56.5s. The same constant is reused for any
+// other fixture rather than re-solved per file; the clamp is what keeps
+// relative ordering honest even when k isn't a perfect fit.
+const DEMO_K = 0.08;
+const DEMO_DWELL_MIN = 220, DEMO_DWELL_MAX = 1400;
+const demoDwell = ms => Math.max(DEMO_DWELL_MIN, Math.min(DEMO_DWELL_MAX, ms * DEMO_K));
+const demoSleep = ms => new Promise(res => setTimeout(res, ms));
+function markDemoSeen(){ try{ sessionStorage.setItem("rt.seen", "1"); }catch(e){} }
+
+// Single cancellation token, checked at every await point in playDemo() --
+// deliberately not an array of timeout ids. demoPending holds the fixture
+// while a sequence has started but render() hasn't fired yet, so abortDemo()
+// knows whether to snap straight to the finished result.
+let demoToken = 0;
+let demoPending = null;
+let demoElapsedTimer = null;
+let demoRestoreScoreLabel = null;
+
+// scoreLabel must reflect the FIXTURE's own retrieval_mode while replaying,
+// never the live /config value (see the SCORE_LABELS comment above) --
+// otherwise a deployment running in a different mode would relabel a
+// recorded RRF score as a cosine similarity. Restored the moment playback
+// ends, whether that is a natural finish or an abort.
+function setDemoScoreLabel(mode){
+  demoRestoreScoreLabel = scoreLabel;
+  scoreLabel = SCORE_LABELS[mode] || "score";
+}
+function restoreScoreLabelIfDemo(){
+  if (demoRestoreScoreLabel !== null){
+    scoreLabel = demoRestoreScoreLabel;
+    demoRestoreScoreLabel = null;
+  }
+}
+
+// Turns a fixture's stage_timings into the per-stage dwell schedule plus the
+// cumulative real-ms range each stage covers (used to make the elapsed clock
+// count toward the RECORDED duration during the dwell, not wall-clock time).
+// Shared by playDemo() and addDemoNotice() so the compression multiplier
+// shown in the badge is computed from the exact same schedule that played.
+function demoPlan(fixture){
+  const rawStages = (fixture && fixture.response && Array.isArray(fixture.response.stage_timings))
+    ? fixture.response.stage_timings : [];
+  const stages = rawStages.filter(s => s && STAGE_ORDER.includes(s.stage));
+  let cum = 0;
+  const steps = stages.map(s => {
+    const ms = Number(s.ms) || 0;
+    const before = cum;
+    cum += ms;
+    return {stage: s.stage, before, after: cum, dwell: demoDwell(ms)};
+  });
+  const dwellSum = steps.reduce((sum, x) => sum + x.dwell, 0);
+  const totalReal = (fixture && typeof fixture.total_ms === "number" && fixture.total_ms > 0)
+    ? fixture.total_ms : cum;
+  return {steps, totalReal, dwellSum, multiplier: dwellSum > 0 ? totalReal / dwellSum : 1};
+}
+
+const DEMO_MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+// Parsed directly out of the ISO string rather than through `new Date(...)` +
+// toLocaleDateString, so a UTC timestamp near midnight can never drift onto
+// the wrong day depending on the visitor's timezone.
+function demoDateLabel(iso){
+  const m = /^(\d{4})-(\d{2})-(\d{2})T/.exec(iso || "");
+  if (!m) return String(iso || "");
+  const mi = parseInt(m[2], 10) - 1;
+  return `${parseInt(m[3], 10)} ${DEMO_MONTHS[mi] || m[2]} ${m[1]}`;
+}
+
+// Injected as children of #stage AFTER render() has already set its
+// innerHTML -- not a second mount, just DOM appended past what render() drew.
+// The next render() call (a live answer) replaces #stage's entire innerHTML
+// and wipes this along with it for free; render() itself needed no changes.
+function addDemoNotice(fixture){
+  const stage = $("#stage");
+  if (!stage.classList.contains("show")) return;
+  const {multiplier, totalReal} = demoPlan(fixture);
+  const realSec = (totalReal / 1000).toFixed(1);
+  const dateLabel = demoDateLabel(fixture.recorded_utc);
+  const srLabel = `Recorded run, replayed automatically. Recorded ${dateLabel}. ` +
+    `The real run took ${realSec} seconds. This is not a live answer.`;
+
+  const notice = document.createElement("div");
+  notice.id = "demoNotice";
+  notice.className = "demo-notice";
+  notice.setAttribute("role", "note");
+  notice.setAttribute("aria-label", srLabel);
+  notice.innerHTML = `<a class="demo-badge" href="${esc(DEMO_FIXTURE_URL)}" target="_blank" rel="noopener">` +
+    `RECORDED RUN &middot; ${esc(dateLabel)} &middot; ${esc(realSec)}s actual</a>`;
+  stage.insertBefore(notice, stage.firstChild);
+
+  // "next to the timeline": appended inside the Stage timeline card render()
+  // already draws, found by its own heading rather than by an id, since
+  // timelineSection() intentionally has none to collide with.
+  const timelineCard = $$(".card", stage).find(c => {
+    const h2 = c.querySelector("h2");
+    return h2 && h2.textContent.trim() === "Stage timeline";
+  });
+  if (timelineCard){
+    const p = document.createElement("p");
+    p.className = "demo-compression";
+    p.textContent = `Replayed at ~${fmtRatio(multiplier)}x — the real run took ${realSec}s.`;
+    timelineCard.appendChild(p);
+  }
+}
+
+// Any of: focusing #q, a keydown in #q, an example chip, Measure, selecting a
+// corpus, or starting an upload aborts instantly. A no-op when no demo is
+// pending or playing, so every call site can invoke it unconditionally.
+function abortDemo(){
+  const fixture = demoPending;
+  demoToken++;
+  clearInterval(demoElapsedTimer);
+  markDemoSeen();
+  if (!fixture) return;
+  // Freeze at the finished recorded result rather than mid-scan or
+  // mid-gauge-draw -- a half-drawn gauge looks broken, a completed one does
+  // not. Fully synchronous: whatever the caller (ask()/uploadFile()) does
+  // right after this returns runs before the browser ever paints this frame.
+  demoPending = null;
+  $("#scan").classList.remove("show");
+  setDemoScoreLabel(fixture.retrieval_mode);
+  render(fixture.response);
+  restoreScoreLabelIfDemo();
+  addDemoNotice(fixture);
+}
+
+async function playDemo(fixture){
+  const {steps, totalReal} = demoPlan(fixture);
+  if (!steps.length) return; // malformed fixture -- leave idle state alone
+
+  // Marked seen the moment playback STARTS, not when it finishes -- a reload
+  // during the ~5s sequence, or a real question typed while the fixture was
+  // still in flight over the network, must not replay it a second time.
+  markDemoSeen();
+  const mine = ++demoToken;
+  demoPending = fixture;
+  await demoSleep(600);
+  if (mine !== demoToken) return; // aborted during the initial delay
+
+  setWorking(true);
+  $("#stage").classList.remove("show");
+  $$(".step", $("#scan")).forEach(s => s.className = "step");
+  $("#scan").classList.add("show");
+  // Framed as replay, not a live request in flight -- the whole point of the
+  // exercise is honesty about what the visitor is looking at.
+  $("#scanTypical").textContent = "Replaying a recorded run — not a live request.";
+  $("#scanElapsed").textContent = "0.0s";
+
+  for (let i = 0; i < steps.length; i++){
+    if (mine !== demoToken) return; // abortDemo() already rendered the resting frame
+    const cur = steps[i];
+    $$(".step", $("#scan")).forEach(s => {
+      const name = s.textContent.trim();
+      s.className = name === cur.stage ? "step active"
+        : steps.slice(0, i).some(p => p.stage === name) ? "step done" : "step";
+    });
+    // The clock counts toward the RECORDED duration (cur.before..cur.after),
+    // interpolated across the compressed dwell -- never wall-clock time.
+    const stageStart = performance.now();
+    clearInterval(demoElapsedTimer);
+    demoElapsedTimer = setInterval(() => {
+      const p = Math.min(1, (performance.now() - stageStart) / cur.dwell);
+      $("#scanElapsed").textContent = fmtElapsed(cur.before + p * (cur.after - cur.before));
+    }, 100);
+    await demoSleep(cur.dwell);
+  }
+  clearInterval(demoElapsedTimer);
+  if (mine !== demoToken) return;
+
+  $("#scanElapsed").textContent = fmtElapsed(totalReal);
+  $("#scan").classList.remove("show");
+  demoPending = null;
+  setDemoScoreLabel(fixture.retrieval_mode);
+  render(fixture.response);
+  restoreScoreLabelIfDemo();
+  addDemoNotice(fixture);
+}
+
+// prefers-reduced-motion: render the recorded result immediately at its
+// final state, badge included, no staged sequence -- never leave the page
+// blank waiting on animation that will not play.
+function playReducedMotion(fixture){
+  const {steps} = demoPlan(fixture);
+  if (!steps.length) return;
+  markDemoSeen(); // start and finish are the same instant here; still "on start"
+  setWorking(true);
+  setDemoScoreLabel(fixture.retrieval_mode);
+  render(fixture.response);
+  restoreScoreLabelIfDemo();
+  addDemoNotice(fixture);
+}
+
 let corpora = [];
 let currentCorpus = null;
 let demoPassages = null;
@@ -1147,6 +1362,7 @@ function loadCorpora(){
 }
 
 corpusSel.onchange = () => {
+  abortDemo();
   currentCorpus = corpusSel.value || null;
   $("#delCorpus").style.display = currentCorpus ? "" : "none";
   if (currentCorpus){
@@ -1192,6 +1408,7 @@ function clearUploadMsg(){
 }
 
 async function uploadFile(file){
+  abortDemo();
   clearUploadMsg();
   $("#go").disabled = true;
   $("#uploadLabel").textContent = "indexing " + file.name;
@@ -1239,6 +1456,7 @@ dropZone.addEventListener("drop", e => {
 });
 
 async function ask(q){
+  abortDemo();
   if (!q || !q.trim()) return;
   $("#go").disabled = true; startScan();
   try{
@@ -1274,6 +1492,11 @@ async function ask(q){
 
 $("#go").onclick = () => ask($("#q").value);
 $("#q").addEventListener("keydown", e => { if (e.key === "Enter") ask($("#q").value); });
+// Focusing or typing in the question field aborts the demo even before
+// Enter/Measure is pressed -- ask() also calls abortDemo() itself, so this is
+// what covers "the visitor is about to interact" rather than "already did."
+$("#q").addEventListener("focus", abortDemo);
+$("#q").addEventListener("keydown", abortDemo);
 
 fetch("/health").then(r => r.json()).then(d => {
   $("#dot").className = "dot on"; $("#svc").textContent = "online";
@@ -1339,6 +1562,47 @@ fetch("/api/examples").then(r => r.json()).then(list => {
 }).catch(() => {});
 
 $("#foot").textContent = "Answers are deterministic — the same question returns the same score.";
+
+// Kick off the auto-demo last, after every function/const above it exists.
+// Skip entirely (today's idle page stands) if this visitor has already seen
+// it this session, arrived via #main or ?tool=1, or the tab is hidden --
+// a background tab starts its own demo on the first tab-in instead of
+// burning the one demo moment unseen.
+(function initAutoDemo(){
+  try{
+    if (sessionStorage.getItem("rt.seen")) return;
+    if (location.hash === "#main") return;
+    if (/(^|[?&])tool=1(&|$)/.test(location.search)) return;
+
+    const start = () => {
+      fetch(DEMO_FIXTURE_URL).then(r => {
+        if (!r.ok) throw new Error("fixture fetch failed");
+        return r.json();
+      }).then(fixture => {
+        if (!fixture || !fixture.response) throw new Error("malformed fixture");
+        // The visitor may have already started asking their own question
+        // while this fetch was still in flight -- abortDemo() would have set
+        // rt.seen the instant that happened. Don't let a late-arriving
+        // fixture hijack a live interaction that has already begun.
+        if (sessionStorage.getItem("rt.seen")) return;
+        if (reduceMotion) playReducedMotion(fixture);
+        else playDemo(fixture);
+      }).catch(() => {}); // any failure -- do nothing, idle page stands
+    };
+
+    if (document.visibilityState !== "visible"){
+      const onVisible = () => {
+        if (document.visibilityState === "visible"){
+          document.removeEventListener("visibilitychange", onVisible);
+          start();
+        }
+      };
+      document.addEventListener("visibilitychange", onVisible);
+    } else {
+      start();
+    }
+  }catch(e){} // sessionStorage/matchMedia access denied, etc. -- idle stands
+})();
 </script>
 </body>
 </html>
