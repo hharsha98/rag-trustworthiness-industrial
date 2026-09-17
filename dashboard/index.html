@@ -712,7 +712,19 @@ function stageTimelineHtml(stages){
   } else {
     caption = `<b>${esc(maxK)}</b> ${fmtDuration(byMs[maxK])} — the only stage this run reached.`;
   }
-  if (full) caption += " The expensive part is verification, not generation.";
+  // State which side actually won, with both figures, rather than asserting a
+  // conclusion. Verification usually dominates here -- but not always: a run
+  // captured in production had generate at 24.6s against entail 16.1s, and a
+  // sentence hardcoded to "verification, not generation" would have contradicted
+  // the chart printed directly above it. `score` counts as verification because
+  // it is the attribution NLI pass, not bookkeeping.
+  if (full){
+    const verify = (byMs.entail || 0) + (byMs.score || 0);
+    const gen = byMs.generate || 0;
+    caption += verify >= gen
+      ? ` Checking the answer cost ${fmtDuration(verify)} against ${fmtDuration(gen)} to write it.`
+      : ` Writing the answer cost ${fmtDuration(gen)} against ${fmtDuration(verify)} to check it.`;
+  }
 
   return `<div class="timeline">
     <div class="timeline-row"><span class="timeline-row-label">linear</span><div class="timeline-track">${row("linear")}</div></div>
