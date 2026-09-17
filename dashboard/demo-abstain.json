@@ -1,0 +1,93 @@
+{
+  "_what": "A verbatim POST /answer response, captured from the live deployment. Replayed by the dashboard so a first-time visitor sees a real run without waiting ~60s for one. No value in `response` is ever edited.",
+  "recorded_utc": "2026-09-17T17:19:20Z",
+  "recorded_against": "demo_corpus.md",
+  "retrieval_mode": "hybrid",
+  "source_commit": "cfc9ca3",
+  "total_ms": 2381.02,
+  "response": {
+    "answer": "Not answerable from this corpus.",
+    "abstained": true,
+    "abstain_reason": "No passage retrieved above the relevance gate (best similarity 0.018 < 0.3).",
+    "is_trustworthy": false,
+    "trust": {
+      "arithmetic": 0.0,
+      "geometric": 0.0,
+      "weights": {
+        "faithfulness": 0.4,
+        "attribution": 0.2,
+        "relevance": 0.2,
+        "conciseness": 0.2
+      }
+    },
+    "metrics": {
+      "relevance": 0.004935173395002225
+    },
+    "claims": [],
+    "citations": {},
+    "per_claim_support": [],
+    "passages": [
+      {
+        "rank": 1,
+        "id": 15,
+        "score": 0.0313,
+        "source": {
+          "source": "demo_corpus.md",
+          "page": 7
+        },
+        "text": "The Markov Decision Process A Markov Decision Process is the formal model underlying reinforcement learning. It is defined by a set of states, a set of actions, a transition function giving the probability of reaching a next state after taking an action in a current state, a reward function, and a discount factor between zero and one that determines how strongly future reward is preferred to immediate reward. The defining assumption is the Markov property: the next state depends only on the current state and the chosen action, not on the history that led there. The current state is therefore"
+      },
+      {
+        "rank": 2,
+        "id": 1,
+        "score": 0.0302,
+        "source": {
+          "source": "demo_corpus.md",
+          "page": 1
+        },
+        "text": "data itself, for example by clustering similar sensor readings. In reinforcement learning the model receives neither labels nor structure but a scalar reward signal indicating how good an action was, and it improves by maximising cumulative reward. Self-supervised learning sits between these. It is a variant of unsupervised learning in which the training target is derived automatically from the raw data rather than supplied by an annotator. This matters in robotics because robots generate enormous quantities of unlabelled sensor data during ordinary operation, and labelling that data by hand is the dominant cost in most projects."
+      },
+      {
+        "rank": 3,
+        "id": 16,
+        "score": 0.0294,
+        "source": {
+          "source": "demo_corpus.md",
+          "page": 7
+        },
+        "text": "discount factor between zero and one that determines how strongly future reward is preferred to immediate reward. The defining assumption is the Markov property: the next state depends only on the current state and the chosen action, not on the history that led there. The current state is therefore a sufficient statistic for the future. A policy maps states to actions. The value of a state under a policy is the expected discounted sum of future rewards obtained by following that policy from that state. Solving an MDP means finding a policy that maximises this expected return. When the robot cannot observe"
+      },
+      {
+        "rank": 4,
+        "id": 8,
+        "score": 0.0292,
+        "source": {
+          "source": "demo_corpus.md",
+          "page": 4
+        },
+        "text": "Artificial Neural Networks and Their Advantages in Robotics An artificial neural network is a composition of parameterised layers, each applying a linear transformation followed by a non-linear activation, trained end to end by gradient descent on a loss function. Three properties make them well suited to robotics. First, they learn features rather than requiring an engineer to design them: a network trained on camera input discovers useful edge and texture detectors without anyone specifying what an edge is. Second, they handle high-dimensional, noisy, heterogeneous input \u2014 camera frames, lidar returns, joint encoders \u2014"
+      },
+      {
+        "rank": 5,
+        "id": 22,
+        "score": 0.0292,
+        "source": {
+          "source": "demo_corpus.md",
+          "page": 9
+        },
+        "text": "long sequences. The vanishing case is what prevents such networks from learning long-range dependencies. The Long Short-Term Memory cell addresses this with an explicit memory cell and three multiplicative gates. The forget gate decides what proportion of the existing cell state to retain. The input gate decides how much of the newly computed candidate value to write. The output gate decides how much of the cell state is exposed as the hidden state at that step. The mechanism that preserves long-term dependencies is the cell state's additive update path. Rather than being repeatedly multiplied by a weight matrix, the cell state is modified by"
+      }
+    ],
+    "stage_timings": [
+      {
+        "stage": "retrieve",
+        "ms": 729.055
+      },
+      {
+        "stage": "gate",
+        "ms": 675.745
+      }
+    ],
+    "latency_ms": 2381.02
+  }
+}

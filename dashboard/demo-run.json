@@ -1,0 +1,134 @@
+{
+  "_what": "A verbatim POST /answer response, captured from the live deployment. Replayed by the dashboard so a first-time visitor sees a real run without waiting ~60s for one. No value in `response` is ever edited.",
+  "recorded_utc": "2026-09-17T17:19:20Z",
+  "recorded_against": "demo_corpus.md",
+  "retrieval_mode": "hybrid",
+  "source_commit": "cfc9ca3",
+  "total_ms": 56470.18,
+  "response": {
+    "answer": "Self-supervised learning reduces a robot's dependence on manual annotation by generating its own supervisory signal from the structure already present in the data [1]. This method scales to as much unlabelled experience as the robot can collect because the label comes from the data itself [1]. In practice, self-supervised learning is used for large-scale pre-training, where a network is first trained on a large unlabelled dataset with a self-supervised objective [1]. After pre-training, the network is fine-tuned on a smaller labelled dataset for specific tasks, allowing the robot to reach target accuracy with far fewer human-labelled examples than supervised training alone would require [4]. This approach is particularly valuable in robotics because robots generate enormous quantities of unlabelled sensor data during ordinary operation, and labelling that data by hand is costly [2].",
+    "abstained": false,
+    "abstain_reason": null,
+    "is_trustworthy": true,
+    "trust": {
+      "arithmetic": 0.626203722094397,
+      "geometric": 0.6234022213257195,
+      "weights": {
+        "faithfulness": 0.4,
+        "attribution": 0.2,
+        "relevance": 0.2,
+        "conciseness": 0.2
+      }
+    },
+    "metrics": {
+      "faithfulness": 0.597293597459793,
+      "contradiction_rate": 0.0808714765124023,
+      "attribution": 0.7499999999999999,
+      "attribution_precision": 0.6,
+      "attribution_recall": 1.0,
+      "relevance": 0.589136171565069,
+      "answer_relevance": null,
+      "conciseness": 0.59729524398733
+    },
+    "claims": [
+      "Self-supervised learning reduces a robot's dependence on manual annotation by generating its own supervisory signal from the structure already present in the data [1].",
+      "This method scales to as much unlabelled experience as the robot can collect because the label comes from the data itself [1].",
+      "In practice, self-supervised learning is used for large-scale pre-training, where a network is first trained on a large unlabelled dataset with a self-supervised objective [1].",
+      "After pre-training, the network is fine-tuned on a smaller labelled dataset for specific tasks, allowing the robot to reach target accuracy with far fewer human-labelled examples than supervised training alone would require [4].",
+      "This approach is particularly valuable in robotics because robots generate enormous quantities of unlabelled sensor data during ordinary operation, and labelling that data by hand is costly [2]."
+    ],
+    "citations": {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 3,
+      "4": 1
+    },
+    "per_claim_support": [
+      0.43498048186302185,
+      0.4529414176940918,
+      0.7202615737915039,
+      0.7955449819564819,
+      0.582739531993866
+    ],
+    "passages": [
+      {
+        "rank": 1,
+        "id": 2,
+        "score": 0.0328,
+        "source": {
+          "source": "demo_corpus.md",
+          "page": 2
+        },
+        "text": "The Role of Self-Supervised Learning in Robotics Self-supervised learning reduces a robot's dependence on manual annotation by generating its own supervisory signal from the structure already present in the data. A common recipe is to hide part of an observation and train the network to reconstruct it, using the withheld part as the label. Because the label comes from the data itself, the method scales to as much unlabelled experience as the robot can collect. In practice this is used for large-scale pre-training. A network is first trained on a large unlabelled dataset with a self-supervised objective, learning general visual or dynamical"
+      },
+      {
+        "rank": 2,
+        "id": 1,
+        "score": 0.032,
+        "source": {
+          "source": "demo_corpus.md",
+          "page": 1
+        },
+        "text": "data itself, for example by clustering similar sensor readings. In reinforcement learning the model receives neither labels nor structure but a scalar reward signal indicating how good an action was, and it improves by maximising cumulative reward. Self-supervised learning sits between these. It is a variant of unsupervised learning in which the training target is derived automatically from the raw data rather than supplied by an annotator. This matters in robotics because robots generate enormous quantities of unlabelled sensor data during ordinary operation, and labelling that data by hand is the dominant cost in most projects."
+      },
+      {
+        "rank": 3,
+        "id": 0,
+        "score": 0.032,
+        "source": {
+          "source": "demo_corpus.md",
+          "page": 1
+        },
+        "text": "Machine Learning Paradigms in Robotics Robot learning is usually organised into three paradigms. In supervised learning a model is trained on input-output pairs that a human has labelled, which is accurate but expensive to scale. In unsupervised learning the model receives no labels and must find structure in the data itself, for example by clustering similar sensor readings. In reinforcement learning the model receives neither labels nor structure but a scalar reward signal indicating how good an action was, and it improves by maximising cumulative reward. Self-supervised learning sits between these. It is a variant of unsupervised learning in"
+      },
+      {
+        "rank": 4,
+        "id": 3,
+        "score": 0.0306,
+        "source": {
+          "source": "demo_corpus.md",
+          "page": 2
+        },
+        "text": "as the label. Because the label comes from the data itself, the method scales to as much unlabelled experience as the robot can collect. In practice this is used for large-scale pre-training. A network is first trained on a large unlabelled dataset with a self-supervised objective, learning general visual or dynamical features, and is then fine-tuned on a much smaller labelled dataset for the specific task at hand, such as object classification or grasp-point prediction. The result is that a robot reaches a target accuracy with far fewer human-labelled examples than supervised training alone would require."
+      },
+      {
+        "rank": 5,
+        "id": 5,
+        "score": 0.0305,
+        "source": {
+          "source": "demo_corpus.md",
+          "page": 3
+        },
+        "text": "Self-Supervised Depth Estimation Depth estimation is a canonical self-supervised task because geometry supplies the label for free. Given a stereo pair, or two consecutive frames from a moving monocular camera, a network predicts a depth map. That predicted depth, combined with the known or estimated camera motion, is used to warp one image into the viewpoint of the other. The difference between the warped image and the real one \u2014 the photometric reprojection error \u2014 becomes the training loss. No human ever labels a depth value. The supervisory signal comes entirely from the constraint"
+      }
+    ],
+    "stage_timings": [
+      {
+        "stage": "retrieve",
+        "ms": 77.98
+      },
+      {
+        "stage": "gate",
+        "ms": 575.492
+      },
+      {
+        "stage": "generate",
+        "ms": 24573.588
+      },
+      {
+        "stage": "decompose",
+        "ms": 0.678
+      },
+      {
+        "stage": "entail",
+        "ms": 16052.354
+      },
+      {
+        "stage": "score",
+        "ms": 15189.225
+      }
+    ],
+    "latency_ms": 56470.18
+  }
+}
