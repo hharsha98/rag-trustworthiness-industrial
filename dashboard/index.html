@@ -208,6 +208,15 @@ a{color:inherit}
   content:"";position:absolute;left:0;top:22%;bottom:22%;width:1px;background:var(--border);
 }
 
+/* Idle faceplate's aggregate timeline -- the headline is a computed finding
+   (never hardcoded, see stageRatioHeadline()), sized up like editorial copy
+   so it reads as a claim, not a label. The bars themselves reuse .timeline /
+   .timeline-row / .timeline-seg from the per-run view below (same CSS, same
+   reduced-motion rule already covers them). */
+.idle-agg-head{margin-top:var(--sp-7)}
+.idle-agg-headline{margin:0;font:400 clamp(17px,2.1vw,22px)/1.35 var(--font-display);letter-spacing:-.01em;color:var(--text)}
+.idle-agg-sub{margin:var(--sp-2) 0 0;font-size:var(--fs-sm);color:var(--text-3);line-height:1.5}
+
 /* ============ composer ============ */
 .composer{
   border:1px solid var(--border);border-radius:var(--r-lg);background:var(--s2);
@@ -543,8 +552,16 @@ tr:last-child td{border-bottom:0}
       <div class="legend-item"><div class="k">Contradiction</div><p>κ — claims the passages actively refute, reported separately from unsupported.</p></div>
       <div class="legend-item"><div class="k">Trust</div><p>Non-compensatory geometric aggregate. Clears at 0.50. Arithmetic is shown beside it.</p></div>
     </div>
-    <div class="path" aria-label="Measurement path">
-      <span>retrieve</span><span>gate</span><span>generate</span><span>decompose</span><span>entail</span><span>score</span>
+    <!-- idleTimelineWrap: starts as the static six-label strip (informative but
+         not a measurement). loadIdleTimeline() below replaces its contents with
+         a real aggregate timeline built from this instance's own /traces data,
+         but only once that fetch actually returns at least one trace -- a fresh
+         deployment, or a failed fetch, leaves this static strip standing rather
+         than fabricate numbers to fill the space. -->
+    <div id="idleTimelineWrap">
+      <div class="path" aria-label="Measurement path">
+        <span>retrieve</span><span>gate</span><span>generate</span><span>decompose</span><span>entail</span><span>score</span>
+      </div>
     </div>
   </section>
 
@@ -621,6 +638,17 @@ const tone = (k,v) => (v === null || v === undefined || Number.isNaN(v))
 const fmtMs = x => (x === null || x === undefined || Number.isNaN(Number(x))) ? "—" : Math.round(Number(x)) + "ms";
 const fmtPct = x => (x === null || x === undefined || Number.isNaN(Number(x))) ? "—" : Math.round(Number(x) * 100) + "%";
 const fmtTrust = x => (x === null || x === undefined || Number.isNaN(Number(x))) ? "—" : Number(x).toFixed(3);
+// Shared by stageTimelineHtml()'s caption and the idle aggregate headline
+// below, so a duration reads the same way ("1.2s" past 1000ms, else "812ms")
+// everywhere on the page instead of drifting between two near-identical
+// formatters.
+const fmtDuration = ms => ms >= 1000 ? (ms / 1000).toFixed(1) + "s" : Math.round(ms) + "ms";
+// Ratios can run from "1.3x" to "1,400x" on real traffic (entail vs generate
+// is routinely three orders of magnitude). Two decimals of precision on a
+// four-digit ratio ("1432.07x") is noise, not information -- round to a
+// whole number once the ratio clears 10 and let toLocaleString group the
+// thousands; below that, one decimal still carries signal ("2.4x" vs "2x").
+const fmtRatio = r => r >= 10 ? Math.round(r).toLocaleString("en-US") : (Math.round(r * 10) / 10).toString();
 
 // Renders the REAL per-stage timings from stage_timings, not the old fake
 // six-chip marquee. Two bars on purpose: linear shows the true proportion
@@ -670,7 +698,6 @@ function stageTimelineHtml(stages){
 
   // The caption is computed from the array every time, never hand-written --
   // whichever stage is slowest/fastest on THIS run is what gets named.
-  const fmtDuration = ms => ms >= 1000 ? (ms / 1000).toFixed(1) + "s" : Math.round(ms) + "ms";
   const pctLabel = p => p < 1 ? (Math.round(p * 100) / 100) + "%" : Math.round(p) + "%";
   let maxK = ranStages[0], minK = ranStages[0];
   ranStages.forEach(k => {
@@ -692,6 +719,16 @@ function stageTimelineHtml(stages){
     <div class="timeline-row"><span class="timeline-row-label">log</span><div class="timeline-track">${row("log")}</div></div>
     <p class="timeline-caption">${caption}</p>
   </div>`;
+}
+
+// Wraps stageTimelineHtml() as its own full-width card so render() can put it
+// directly under the verdict banner -- the second thing seen on the page,
+// above the metric readouts -- instead of buried at the bottom of whichever
+// card used to hold it. Both render() branches (abstained and answered) call
+// this same function rather than each inlining the wrapper, so there is one
+// place deciding how the section is framed and no per-branch id to collide.
+function timelineSection(stageTimings){
+  return `<div class="card" style="margin-top:12px"><h2>Stage timeline</h2>${stageTimelineHtml(stageTimings)}</div>`;
 }
 
 function readoutCell(label, value, hint, key){
@@ -850,12 +887,12 @@ function render(d){
         <div class="big">Declined to answer</div>
         <div class="sub">${esc(d.abstain_reason || "Nothing in the corpus supports an answer.")}</div>
       </div>
-    </div>
+    </div>` + timelineSection(d.stage_timings) + `
     <div class="card"><h2>Why this is the correct outcome</h2>
     <p style="margin:0;color:var(--text-2);font-size:13px;line-height:1.65">
     The retrieval gate fires <em>before</em> generation, so a question the corpus cannot answer costs
     nothing to refuse. Declining is a first-class result here — a system that always answers has no
-    way to tell you when it should not have.</p>${stageTimelineHtml(d.stage_timings)}</div>`;
+    way to tell you when it should not have.</p></div>`;
   } else {
     const ok = d.is_trustworthy;
     const g = t.geometric;
@@ -869,6 +906,8 @@ function render(d){
       </div>
       <div class="verdict-score"><span ${g == null ? "" : `data-target="${g}"`}>${g == null ? "—" : "0.000"}</span><span class="unit">geometric</span></div>
     </div>`;
+
+    h += timelineSection(d.stage_timings);
 
     h += readoutStrip(m, t);
 
@@ -896,7 +935,7 @@ function render(d){
         </div></div>`;
     }
     h += `</div><div>
-      <div class="card"><h2>Trust instrument</h2>${gauge(t.arithmetic, t.geometric)}${stageTimelineHtml(d.stage_timings)}</div>
+      <div class="card"><h2>Trust instrument</h2>${gauge(t.arithmetic, t.geometric)}</div>
       </div></div>`;
   }
 
@@ -954,6 +993,40 @@ function render(d){
 
 const STAGE_ORDER = ["retrieve","gate","generate","decompose","entail","score"];
 
+// Mean ms per stage across a set of traces, in STAGE_ORDER. Shared by
+// renderEvalPanel() (the Evaluation panel's latency breakdown) and
+// loadIdleTimeline() (the idle faceplate's aggregate timeline) -- one place
+// that turns raw trace stage timings into per-stage means, instead of two
+// copies of the same sums/counts loop drifting apart.
+function stageMeans(traces){
+  const sums = {}, counts = {};
+  (Array.isArray(traces) ? traces : []).forEach(t => (t.stages || []).forEach(s => {
+    sums[s.stage] = (sums[s.stage] || 0) + (Number(s.ms) || 0);
+    counts[s.stage] = (counts[s.stage] || 0) + 1;
+  }));
+  return STAGE_ORDER.filter(k => counts[k]).map(k => ({stage: k, mean: sums[k] / counts[k]}));
+}
+
+// The idle faceplate's headline claim: which stage costs the most against
+// the cheapest one that actually ran, and by what multiple. Returns null
+// (render nothing) rather than a degenerate ratio when there are fewer than
+// two measured stages to compare, or when the fastest stage measured exactly
+// 0ms -- a legitimate outcome (e.g. a gate rejecting an obviously unrelated
+// question almost instantly) that a ratio cannot honestly be computed
+// against.
+function stageRatioHeadline(means){
+  if (!Array.isArray(means) || means.length < 2) return null;
+  let slow = means[0], fast = means[0];
+  means.forEach(m => {
+    if (m.mean > slow.mean) slow = m;
+    if (m.mean < fast.mean) fast = m;
+  });
+  if (fast.mean <= 0 || slow.stage === fast.stage) return null;
+  const ratio = slow.mean / fast.mean;
+  if (!(ratio > 1)) return null;
+  return { slow, fast, ratio };
+}
+
 function renderEvalPanel(data){
   const stats = (data && data.stats) || {};
   const traces = Array.isArray(data && data.traces) ? data.traces : [];
@@ -976,12 +1049,7 @@ function renderEvalPanel(data){
   // (not the full ring buffer) -- the payoff of the panel, showing where the
   // time actually goes. Bars scale to the largest stage mean, matching the
   // readout tracks used for the per-metric strip above.
-  const sums = {}, counts = {};
-  traces.forEach(t => (t.stages || []).forEach(s => {
-    sums[s.stage] = (sums[s.stage] || 0) + (Number(s.ms) || 0);
-    counts[s.stage] = (counts[s.stage] || 0) + 1;
-  }));
-  const means = STAGE_ORDER.filter(k => counts[k]).map(k => ({stage: k, mean: sums[k] / counts[k]}));
+  const means = stageMeans(traces);
   if (means.length){
     const maxMean = Math.max(...means.map(m => m.mean), 0.001);
     h += `<div style="margin-bottom:16px">` + means.map(m => `
@@ -1201,6 +1269,49 @@ fetch("/health").then(r => r.json()).then(d => {
   $("#npsg").textContent = d.passages ?? "—";
   $("#nli").textContent = (d.nli_model || "—").split("/").pop();
 }).catch(() => { $("#dot").className = "dot off"; $("#svc").textContent = "offline"; });
+
+// Idle faceplate's aggregate timeline. GET /traces is free, read-only,
+// unmetered and returns in milliseconds -- unlike POST /answer, which costs
+// money and is rate limited -- so it's safe to call unconditionally on page
+// load, before the visitor has asked anything. Renders the SAME
+// stageTimelineHtml() used for a single run, fed stageMeans() over the
+// traces this instance has actually served; a fresh deployment's empty
+// buffer, or a failed fetch, leaves the static #idleTimelineWrap markup
+// (the six-label strip) standing rather than fabricate a number.
+function loadIdleTimeline(){
+  fetch("/traces?limit=50").then(r => r.json()).then(data => {
+    const traces = Array.isArray(data && data.traces) ? data.traces : [];
+    if (!traces.length) return; // empty buffer -- keep the static fallback
+    const means = stageMeans(traces);
+    if (!means.length) return; // defensive; traces without any stage timings
+
+    const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+    const n = traces.length;
+    const r = stageRatioHeadline(means);
+    const headHtml = r
+      ? `<p class="idle-agg-headline">${esc(cap(r.slow.stage))} costs ${fmtRatio(r.ratio)}&times; what ${esc(r.fast.stage)} does.</p>
+         <p class="idle-agg-sub">${esc(cap(r.slow.stage))} ${fmtDuration(r.slow.mean)} mean vs ${esc(r.fast.stage)} ${fmtDuration(r.fast.mean)}
+         mean — from the last ${n} run${n === 1 ? "" : "s"} on this instance, each stage
+         averaged over the runs in which it actually ran.</p>`
+      : `<p class="idle-agg-sub">From the last ${n} run${n === 1 ? "" : "s"} on this instance, each stage
+         averaged over the runs in which it actually ran.</p>`;
+
+    const wrap = $("#idleTimelineWrap");
+    wrap.innerHTML = `<div class="idle-agg-head">${headHtml}</div>${stageTimelineHtml(means.map(m => ({stage: m.stage, ms: m.mean})))}`;
+
+    // Same data-w + single rAF deferral render() uses for the results stage,
+    // scoped to this wrapper so it never touches another region's bars. The
+    // width transition itself is already suppressed under reduced motion by
+    // the existing `.timeline-seg{transition:none}` rule, and animateNumber()
+    // already skips its count-up loop under reduced motion -- so this one
+    // path handles both the normal and reduced-motion cases without a branch.
+    requestAnimationFrame(() => {
+      $$(".timeline-seg[data-w]", wrap).forEach(el => { el.style.width = el.dataset.w + "%"; });
+      $$(".seg-ms[data-target-ms]", wrap).forEach(el => { animateNumber(el, Number(el.dataset.targetMs), 0); });
+    });
+  }).catch(() => {}); // fetch failed -- keep the static fallback
+}
+loadIdleTimeline();
 
 loadCorpora();
 
