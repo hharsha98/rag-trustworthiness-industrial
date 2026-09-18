@@ -356,6 +356,13 @@ a{color:inherit}
 .readout-track{height:3px;border-radius:var(--sp-1);background:var(--s1);overflow:hidden;border:1px solid var(--border)}
 .readout-track .fill{display:block;height:100%;width:0;transition:width var(--dur-4) var(--ease-out)}
 .readout-h{font-size:var(--fs-sm);color:var(--text-3);margin-top:7px;line-height:1.35}
+/* The weight/diagnostic badge rides on the same line as the metric key, so it
+   reads as an annotation on that label rather than a second number competing
+   with .readout-v below it -- smaller type, no letter-spacing inherited from
+   the uppercase key, same muted color the key already uses when a value is
+   missing. */
+.readout-w{margin-left:var(--sp-3);font-size:var(--fs-2xs);letter-spacing:normal;text-transform:none;color:var(--text-3)}
+.readout-note{margin:var(--sp-4) 0 var(--sp-6);line-height:1.5}
 
 .cols{display:grid;grid-template-columns:1.45fr .95fr;gap:var(--sp-6);align-items:start}
 @media (max-width:940px){.cols{grid-template-columns:1fr}}
@@ -501,7 +508,7 @@ tr:last-child td{border-bottom:0}
         <span class="pill">geometric ≥ 0.50</span>
       </div>
       <h1 class="hero-display">Every answer is a <em>measurement</em>.</h1>
-      <p class="hero-sub">Evidence, five trust metrics, and a score that cannot be inflated by fluency — or a refusal.</p>
+      <p class="hero-sub">Evidence, four scored metrics, the rest reported, and a score that cannot be inflated by fluency — or a refusal.</p>
     </div>
     <div class="hero-visual" aria-hidden="true">
       <svg class="hero-bezel" viewBox="0 0 320 320" fill="none">
@@ -754,22 +761,37 @@ function timelineSection(stageTimings){
   return `<div class="card" style="margin-top:12px"><h2>Stage timeline</h2>${stageTimelineHtml(stageTimings)}</div>`;
 }
 
-function readoutCell(label, value, hint, key){
+// `missingHint` defaults to the wording this cell has always used, which is
+// only true of a metric that IS in the weight vector: "dropped from the
+// score" says it was a candidate and fell out. A metric that was never
+// weighted at all -- answer_relevance, contradiction_rate -- cannot have been
+// dropped from a score it was never in, and labelling it that way is the same
+// kind of lie as rendering a null through a colour scale. Callers that know
+// which side a cell is on pass the accurate wording instead.
+function readoutCell(label, value, hint, key, badge, missingHint = "undefined · dropped from the score"){
   const missing = value === null || value === undefined || Number.isNaN(Number(value));
   const v = missing ? null : Number(value);
   const color = missing ? "var(--text-3)" : tone(key, v);
   const pct = missing ? 0 : Math.max(0, Math.min(1, v)) * 100;
+  // `badge` is optional and additive only -- when the caller omits it (every
+  // call site before this feature existed, and the Trust cell today) the
+  // markup is byte-for-byte what it always was.
+  const badgeHtml = badge ? `<span class="readout-w">${esc(badge)}</span>` : "";
   return `<div class="readout">
-    <div class="readout-k">${esc(label)}</div>
+    <div class="readout-k">${esc(label)}${badgeHtml}</div>
     <div class="readout-v" style="color:${color}" ${missing ? "" : `data-target="${v}"`}>${missing ? "—" : "0.000"}</div>
     <div class="readout-track">${missing ? "" : `<i class="fill" style="background:${color}" data-w="${pct}"></i>`}</div>
-    <div class="readout-h">${missing ? "undefined · dropped from the score" : esc(hint)}</div>
+    <div class="readout-h">${missing ? esc(missingHint) : esc(hint)}</div>
   </div>`;
 }
 
 function readoutStrip(m, t){
-  const cells = [
-    ["Trust", t.geometric, "geometric · non-compensatory", "t"],
+  // These four objects are identical regardless of whether weights are known --
+  // same labels, same hints, same order the page has always used. Building
+  // them once and only branching on how they get arranged/labelled keeps the
+  // "weights absent" path provably identical to the pre-existing behaviour
+  // instead of being a second, hand-maintained copy of this list.
+  const metricDefs = [
     ["Faithfulness", m.faithfulness, "share the passages actually entail", "faithfulness"],
     ["Attribution", m.attribution,
       (m.attribution_precision != null || m.attribution_recall != null)
@@ -779,14 +801,86 @@ function readoutStrip(m, t){
     ["Relevance", m.relevance, "retrieval found related material", "relevance"],
   ];
   if (m.answer_relevance !== undefined) {
-    cells.push(["Answer rel.", m.answer_relevance, "answers the question asked", "answer_relevance"]);
+    metricDefs.push(["Answer rel.", m.answer_relevance, "answers the question asked", "answer_relevance"]);
   }
-  cells.push(
+  metricDefs.push(
     ["Conciseness", m.conciseness, "redundancy among the answer's claims", "conciseness"],
     ["Contradiction", m.contradiction_rate, "κ · passages actively refute", "contradiction_rate"],
   );
+  const trustCell = ["Trust", t.geometric, "geometric · non-compensatory", "t"];
+
+  const w = (t && t.weights) || null;
+  // A metric is scored iff its key is a key of `weights` -- the backend drops
+  // (not zero-weights) any metric it isn't told to score, because the
+  // geometric mean raises each metric to its weight and 0**0 is undefined.
+  // Without `weights` we have no way to know which cells were actually scored,
+  // so we render exactly what this function has always rendered rather than
+  // guess: a missing weight vector must never produce a labelled guess.
+  if (!w || typeof w !== "object" || !Object.keys(w).length){
+    const cells = [trustCell, ...metricDefs];
+    const extra = cells.length === 7 ? " readouts-7" : "";
+    return `<div class="readouts${extra}">${cells.map(c => readoutCell(...c)).join("")}</div>`;
+  }
+
+  const scoredDefs = metricDefs.filter(c => Object.prototype.hasOwnProperty.call(w, c[3]));
+  const diagnosticDefs = metricDefs.filter(c => !Object.prototype.hasOwnProperty.call(w, c[3]));
+  // Array#sort is stable (guaranteed since ES2019), so metrics tied on
+  // nominal weight keep the relative order metricDefs already puts them in
+  // rather than being shuffled by the sort.
+  const scoredSorted = scoredDefs.slice().sort((a, b) => w[b[3]] - w[a[3]]);
+  const scoredCells = scoredSorted.map(c => [...c, w[c[3]].toFixed(2)]);
+  // A diagnostic that came back null is undefined for this run and nothing
+  // more -- it was never a candidate for the score, so the default "dropped
+  // from the score" wording would claim a demotion that never happened.
+  const diagnosticCells = diagnosticDefs.map(c => [...c, "diag", "undefined for this run"]);
+
+  const cells = [trustCell, ...scoredCells, ...diagnosticCells];
   const extra = cells.length === 7 ? " readouts-7" : "";
-  return `<div class="readouts${extra}">${cells.map(c => readoutCell(...c)).join("")}</div>`;
+  const grid = `<div class="readouts${extra}">${cells.map(c => readoutCell(...c)).join("")}</div>`;
+
+  // The caption below is assembled from `w`/`m` every time -- never hand-
+  // written prose about a specific run's numbers, the same rule
+  // stageTimelineHtml()'s caption follows above.
+  const labelByKey = {};
+  metricDefs.forEach(c => { labelByKey[c[3]] = c[0]; });
+  const scoredList = scoredSorted.map(c => `${esc(c[0])} (${w[c[3]].toFixed(2)})`).join(", ");
+  const noteParts = [
+    `${scoredSorted.length} of ${metricDefs.length} metrics shown are scored into Trust — ${scoredList}.`,
+  ];
+  if (diagnosticCells.length){
+    const names = diagnosticDefs.map(c => esc(c[0])).join(" and ");
+    const verb = diagnosticDefs.length > 1 ? "are" : "is";
+    let sentence = `${names} ${verb} reported rather than scored`;
+    // Contradiction specifically gets its own reason: "unsupported" and
+    // "refuted" call for different fixes, so subtracting one into a single
+    // blended number would hide which problem an answer actually has.
+    sentence += diagnosticDefs.some(c => c[3] === "contradiction_rate")
+      ? " — unsupported and refuted passages call for different fixes, so contradiction stays its own number instead of being netted into one score."
+      : ".";
+    noteParts.push(sentence);
+  }
+  // Only say anything about renormalisation when it actually happened, i.e.
+  // at least one weighted key came back null/undefined/NaN this run -- a
+  // scored metric that is present every time never triggers this sentence,
+  // so the page doesn't manufacture "no renormalisation occurred" noise.
+  const weightKeys = Object.keys(w);
+  const missingKeys = weightKeys.filter(k => {
+    const val = m[k];
+    return val === null || val === undefined || Number.isNaN(Number(val));
+  });
+  if (missingKeys.length){
+    const survivingKeys = weightKeys.filter(k => !missingKeys.includes(k));
+    if (!survivingKeys.length){
+      noteParts.push("Every weighted metric came back null for this run, so no Trust weight was computable.");
+    } else {
+      const survivingSum = survivingKeys.reduce((sum, k) => sum + w[k], 0);
+      const droppedLabels = missingKeys.map(k => esc(labelByKey[k] || k)).join(", ");
+      const effText = survivingKeys.map(k => `${esc(labelByKey[k] || k)} ${(w[k] / survivingSum).toFixed(2)}`).join(", ");
+      noteParts.push(`${droppedLabels} came back null for this run, so the surviving weights were renormalised to ${effText}.`);
+    }
+  }
+  const note = `<p class="hint readout-note">${noteParts.join(" ")}</p>`;
+  return grid + note;
 }
 
 function gaugeTicks(){
